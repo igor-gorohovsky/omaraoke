@@ -81,7 +81,23 @@ fi
 
 # --- Ladder ---------------------------------------------------------------
 
-fetch() { curl -sf --max-time 10 -A "$UA" -G "$@" 2>/dev/null; }
+# A lyric record is a few kilobytes; a search page of them, tens. 2 MiB is far
+# above anything LRCLIB returns and far below anything that would hurt to hold
+# in a shell variable.
+MAX_BYTES=$((2 * 1024 * 1024))
+
+# Two caps, because one is not enough: --max-filesize refuses a body whose
+# announced Content-Length is over the limit, but has no effect on a chunked
+# response whose size is never declared, so `head -c` truncates that case as it
+# streams. A truncated body is invalid JSON and fails `usable` below, which is
+# the behaviour we want — an oversized response degrades to a miss.
+fetch() {
+  local out
+  out=$(curl -sf --max-time 10 --max-filesize "$MAX_BYTES" -A "$UA" -G "$@" 2>/dev/null \
+          | head -c "$MAX_BYTES")
+  [[ -n "$out" ]] || return 1
+  printf '%s' "$out"
+}
 
 usable() { # a record with lyrics or an instrumental flag
   jq -e '(.instrumental == true) or ((.syncedLyrics // "") != "") or ((.plainLyrics // "") != "")' \

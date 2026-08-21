@@ -115,6 +115,10 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         width: Math.min(implicitWidth, view.width * 0.8)
         wrapMode: Text.Wrap
+        // Everything shown here arrives from LRCLIB or MPRIS, i.e. from
+        // outside. AutoText would sniff such a payload as rich text and let
+        // markup in it (an <img src>, say) pull a remote resource. Plain.
+        textFormat: Text.PlainText
         horizontalAlignment: Text.AlignHCenter
         color: view.textColor
         font.family: Style.font.family
@@ -125,6 +129,7 @@ Item {
         id: secondaryText
         anchors.horizontalCenter: parent.horizontalCenter
         visible: text !== ""
+        textFormat: Text.PlainText
         color: view.dimTextColor
         font.family: Style.font.family
         font.pixelSize: Style.font.title
@@ -369,6 +374,7 @@ Item {
               width: Math.min(implicitWidth, stack.width * 0.85)
               wrapMode: Text.Wrap
               horizontalAlignment: Text.AlignHCenter
+              textFormat: Text.PlainText
               text: slot.modelData.text
               color: Util.alpha(Color.foreground, 0.55 + 0.45 * slot.prominence)
               font.family: Style.font.family
@@ -407,6 +413,7 @@ Item {
         width: parent.width
         wrapMode: Text.Wrap
         horizontalAlignment: Text.AlignHCenter
+        textFormat: Text.PlainText
         text: view.service ? view.service.plainText : ""
         color: view.textColor
         font.family: Style.font.family
