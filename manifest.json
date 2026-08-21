@@ -5,6 +5,8 @@
   "version": "0.1.0",
   "author": "igoroh",
   "description": "Karaoke overlay: synced lyrics on your wallpaper with an audio-reactive color organ",
+  "license": "MIT",
+  "homepage": "https://github.com/igor-gorohovsky/omaraoke",
   "kinds": ["service", "overlay"],
   "keepLoaded": true,
   "entryPoints": {

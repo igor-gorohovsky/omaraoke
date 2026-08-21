@@ -87,6 +87,37 @@ the next line starts. Steadier to read; less alive.
 - Want the audio-reactive **Color Organ** (once it ships)? `pacman -S cava`.
   Without it, lyrics work fine and the reactive layer is silently absent.
 
+## 📦 Requirements & dependencies
+
+Nothing to install on a stock Omarchy box — every required piece is already
+there.
+
+| Dependency | Used for | |
+|---|---|---|
+| Omarchy shell (Quickshell/QML) | hosts the service and the overlay | required |
+| Hyprland + `hyprctl` | stashing and restoring windows | required |
+| `bash`, `jq`, `curl`, `sed`, `coreutils`, `util-linux` (`flock`) | the scripts in `bin/` | required |
+| A player that speaks MPRIS | track identity and playback position | required |
+| [`cava`](https://github.com/karlstav/cava) | the audio-reactive Color Organ (not drawn yet) | optional |
+| [LRCLIB](https://lrclib.net) | lyric lookup over HTTPS — open, keyless, no account | external service |
+
+The only thing that leaves your machine is the artist / title / album /
+duration of the current track, sent to LRCLIB to find its lyrics.
+
+## 🔒 What it touches
+
+Omaraoke never writes your configuration. The keybinding and the menu row
+above are yours to add and yours to remove; settings are *read* from the entry
+you put in `~/.config/omarchy/shell.json` and never written back. At runtime it
+creates only its own files:
+
+- `~/.cache/omaraoke/` — the lyric cache.
+- `~/.local/state/omaraoke/stash.json` — the window restore map, deleted when
+  the session closes.
+- `~/.local/state/omarchy/toggles/bar-off` — only if you opt in with
+  `hideBar: true`, and it is removed again on close unless you were already
+  hiding the bar yourself.
+
 ## 🔧 Under the hood
 
 Lyrics come from [LRCLIB](https://lrclib.net) — open, keyless — and are cached
@@ -130,3 +161,14 @@ Uninstall:
 ```sh
 omarchy plugin remove igoroh.omaraoke
 ```
+
+That takes the plugin away completely. To clean up after it, drop the
+keybinding line from `~/.config/hypr/bindings.lua` (and the menu row from
+`~/.config/omarchy/extensions/omarchy-menu.jsonc`) if you added them, remove
+the `igoroh.omaraoke` entry from `~/.config/omarchy/shell.json`, and delete
+`~/.cache/omaraoke/` and `~/.local/state/omaraoke/`.
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE). Lyrics are fetched from LRCLIB and belong to
+their respective rights holders; Omaraoke ships none.
