@@ -7,13 +7,20 @@
 # {"miss":true} when no Track Match exists. Never fails the caller for
 # network reasons — offline behaves exactly like a miss.
 #
-# Cache: ~/.cache/omaraoke/<sha256(artist|title|duration)>.json keyed on the
-# RAW MPRIS fields (identity as reported, before cleaning). Hits live
-# forever; misses expire after ~1 day so an unmatched track doesn't re-pay
-# the network timeout on every replay.
+# Cache: ~/.cache/omaraoke/<sha256(artist|title)>.json keyed on the RAW MPRIS
+# fields (identity as reported, before cleaning). Duration is deliberately not
+# part of the key: players report transient or wrong lengths around track
+# starts, and keying on it split one song across keys, poisoning some of them
+# with a miss. Hits live forever; a miss expires after ~1 day so an unmatched
+# track doesn't re-pay the network timeout on every replay — but a miss is
+# only ever written when every provider actually answered and a real duration
+# was known. Offline lookups and duration-less early lookups degrade to an
+# uncached miss instead of poisoning the key.
 #
 # Matching ladder: clean → /api/get with album → /api/get without album →
-# /api/search filtered to ±3 s duration, synced lyrics preferred.
+# /api/search filtered to ±3 s duration, synced lyrics preferred →
+# lrcmux (https://lrcmux.dev), line-synced only, as a rescue for plain-only
+# LRCLIB hits and a last-resort source.
 set -uo pipefail
 
 ARTIST="${1-}"
@@ -31,7 +38,7 @@ UA="omaraoke/0.1.0 (https://github.com/igoroh)"
 DUR=$(printf '%.0f' "$DURATION" 2>/dev/null || echo 0)
 
 mkdir -p "$CACHE_DIR"
-key=$(printf '%s|%s|%s' "$ARTIST" "$TITLE" "$DUR" | sha256sum | cut -d' ' -f1)
+key=$(printf '%s|%s' "$ARTIST" "$TITLE" | sha256sum | cut -d' ' -f1)
 cache_file="$CACHE_DIR/$key.json"
 
 if [[ -s "$cache_file" && "$REFRESH" != "--refresh" ]]; then
@@ -99,12 +106,26 @@ fetch() {
   printf '%s' "$out"
 }
 
+# Like fetch(), but lrcmux speaks 404 for "definitively no lyrics", which is
+# an answer we must distinguish from a timeout/refusal. Emits the HTTP status
+# on the first line ("000" when the request itself failed), then the body.
+fetch_mux() {
+  local resp body
+  resp=$(curl -s --max-time 10 --max-filesize "$MAX_BYTES" -A "$UA" -G \
+           -w $'\n%{http_code}' "$@" 2>/dev/null | head -c "$MAX_BYTES")
+  if [[ -z "$resp" ]]; then printf '000\n'; return; fi
+  body=${resp%$'\n'*}
+  printf '%s\n%s' "${resp##*$'\n'}" "$body"
+}
+
 usable() { # a record with lyrics or an instrumental flag
   jq -e '(.instrumental == true) or ((.syncedLyrics // "") != "") or ((.plainLyrics // "") != "")' \
     >/dev/null 2>&1 <<<"$1"
 }
 
 result=""
+lrc_ok=0   # LRCLIB answered
+mux_ok=0   # lrcmux answered
 
 # rung 1: exact get, with album
 if [[ -n "$c_artist" && -n "$ALBUM" && "$DUR" -gt 0 ]]; then
@@ -112,7 +133,7 @@ if [[ -n "$c_artist" && -n "$ALBUM" && "$DUR" -gt 0 ]]; then
     --data-urlencode "artist_name=$c_artist" \
     --data-urlencode "track_name=$c_title" \
     --data-urlencode "album_name=$ALBUM" \
-    --data-urlencode "duration=$DUR") && usable "$r" && result="$r"
+    --data-urlencode "duration=$DUR") && { lrc_ok=1; usable "$r"; } && result="$r"
 fi
 
 # rung 2: get without album
@@ -120,7 +141,7 @@ if [[ -z "$result" && -n "$c_artist" && "$DUR" -gt 0 ]]; then
   r=$(fetch "$API/get" \
     --data-urlencode "artist_name=$c_artist" \
     --data-urlencode "track_name=$c_title" \
-    --data-urlencode "duration=$DUR") && usable "$r" && result="$r"
+    --data-urlencode "duration=$DUR") && { lrc_ok=1; usable "$r"; } && result="$r"
 fi
 
 # rung 3: search with cleaned fields, ±3 s duration, synced preferred
@@ -129,12 +150,40 @@ if [[ -z "$result" ]]; then
     --data-urlencode "track_name=$c_title" \
     ${c_artist:+--data-urlencode "artist_name=$c_artist"})
   if [[ -n "$r" ]]; then
+    lrc_ok=1
     best=$(jq -c --argjson d "$DUR" '
       [.[] | select($d == 0 or (((.duration // 0) - $d) | fabs) <= 3)]
       | sort_by([(if (.syncedLyrics // "") != "" then 0 else 1 end),
                  (((.duration // 0) - $d) | fabs)])
       | .[0] // empty' <<<"$r" 2>/dev/null)
     [[ -n "$best" ]] && usable "$best" && result="$best"
+  fi
+fi
+
+# rung 4: lrcmux — an aggregator over KuGou/Musixmatch/NetEase/YT Music.
+# Asked for line-synced or better, strictly: a hit is guaranteed to carry real
+# line timestamps. It rescues two cases the LRCLIB ladder leaves behind — a
+# plain-only LRCLIB match when synced lyrics exist elsewhere, and tracks
+# absent from LRCLIB entirely (in which case result is still empty here).
+# Its LRC is enhanced (inline <mm:ss.xx> word tags); those are stripped
+# because Lyrics.js parses line-level only.
+if [[ -z "$result" ]] \
+   || ! jq -e '(.syncedLyrics // "") != "" or (.instrumental == true)' >/dev/null 2>&1 <<<"$result"; then
+  muxargs=()
+  [[ -n "$c_artist" ]] && muxargs+=(--data-urlencode "artist=$c_artist")
+  [[ -n "$ALBUM" ]] && muxargs+=(--data-urlencode "album=$ALBUM")
+  (( DUR > 0 )) && muxargs+=(--data-urlencode "duration=$DUR")
+  r=$(fetch_mux "https://api.lrcmux.dev/get" "${muxargs[@]}" \
+    --data-urlencode "title=$c_title" \
+    --data-urlencode "level=line" \
+    --data-urlencode "strict=true" \
+    --data-urlencode "format=lrc")
+  code=${r%%$'\n'*}
+  body=${r#*$'\n'}
+  [[ "$code" == 200 || "$code" == 404 ]] && mux_ok=1   # a hit or a definitive no-lyrics
+  if [[ "$code" == 200 && -n "$body" ]]; then
+    lrc=$(sed -E 's/<[0-9]{1,3}:[0-9]{1,2}\.[0-9]{1,3}>//g' <<<"$body")
+    [[ -n "$lrc" ]] && result=$(jq -cn --arg s "$lrc" '{syncedLyrics:$s}')
   fi
 fi
 
@@ -146,8 +195,13 @@ if [[ -n "$result" ]]; then
     && mv "$cache_file.tmp" "$cache_file"
   jq -c 'del(.fetchedAt)' <<<"$result"
 else
-  printf '{"miss":true,"fetchedAt":%s}' "$now" >"$cache_file.tmp" \
-    && mv "$cache_file.tmp" "$cache_file"
+  # Cache the miss only for a definitive negative: both providers answered
+  # and a real duration filtered the ladder. Anything else is transient —
+  # leave the key clean so the next lookup retries.
+  if [[ "$lrc_ok" == 1 && "$mux_ok" == 1 && "$DUR" -gt 0 ]]; then
+    printf '{"miss":true,"fetchedAt":%s}' "$now" >"$cache_file.tmp" \
+      && mv "$cache_file.tmp" "$cache_file"
+  fi
   echo '{"miss":true}'
 fi
 exit 0
