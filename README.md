@@ -14,6 +14,10 @@ Omarchy theme, over any wallpaper.
 
 https://github.com/user-attachments/assets/231895c6-82a3-4618-ba09-a783588ee2aa
 
+*(54 s, with sound — unmute for the full effect.)*
+
+## 📥 Install
+
 ```sh
 omarchy plugin add https://github.com/igor-gorohovsky/omaraoke.git --enable
 ```
