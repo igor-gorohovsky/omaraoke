@@ -8,7 +8,9 @@ again — your desktop snaps back exactly as you left it. No windows harmed.
 
 Works with any player on your system (anything that speaks MPRIS), in any
 Omarchy theme, over any wallpaper.
-![Uploading image.png…]()
+
+<img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/d46fe981-86df-4cb0-b234-30948ad9f07c" />
+
 
 https://github.com/user-attachments/assets/231895c6-82a3-4618-ba09-a783588ee2aa
 
