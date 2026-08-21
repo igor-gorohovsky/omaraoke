@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# omaraoke-stash — clear the stage for a karaoke Session.
+#
+# Records every window on each monitor's active workspace into
+# ~/.local/state/omaraoke/stash.json (address → workspace, plus what we did
+# to the bar), then moves them all to special:karaoke. The bar stays
+# visible by default; pass --hide-bar to hide it for the Session. The state
+# file is written BEFORE any window moves so a crash at any point is
+# recoverable by omaraoke-restore.
+#
+# Window moves go through `hyprctl eval` (Lua dispatch) — this Hyprland is
+# Lua-configured, mirroring the user's show-desktop technique (ADR-0002 keeps
+# the workspace and state file separate from show-desktop's).
+set -euo pipefail
+
+hide_bar=false
+[[ "${1:-}" == "--hide-bar" ]] && hide_bar=true
+
+STATE_DIR="$HOME/.local/state/omaraoke"
+STASH="$STATE_DIR/stash.json"
+SPECIAL="special:karaoke"
+BAR_OFF_FLAG="$HOME/.local/state/omarchy/toggles/bar-off"
+
+mkdir -p "$STATE_DIR"
+exec 9>"$STATE_DIR/.lock"
+flock 9
+
+if [[ -s "$STASH" ]]; then
+  echo "omaraoke-stash: stash.json already exists; run omaraoke-restore first" >&2
+  exit 2
+fi
+
+bar_was_hidden=false
+[[ -f "$BAR_OFF_FLAG" ]] && bar_was_hidden=true
+
+visible=$(hyprctl monitors -j | jq -c '[.[].activeWorkspace.id]')
+hyprctl clients -j | jq --argjson vis "$visible" --argjson bar "$bar_was_hidden" \
+  --argjson hid "$hide_bar" '{
+    version: 1,
+    barWasHidden: $bar,
+    hidBar: $hid,
+    windows: [.[] | select(.workspace.id as $i | $vis | index($i)) | {address, workspace: .workspace.id}]
+  }' >"$STASH.tmp"
+mv "$STASH.tmp" "$STASH"
+
+# Hide the bar only when asked (flag file present = hidden; the shell
+# watches the toggles dir)
+if [[ "$hide_bar" == "true" ]]; then
+  mkdir -p "$(dirname "$BAR_OFF_FLAG")"
+  touch "$BAR_OFF_FLAG"
+fi
+
+entries=$(jq -r '.windows[].address | "\"" + . + "\","' "$STASH")
+if [[ -n "$entries" ]]; then
+  hyprctl eval "
+for _, a in ipairs({$entries}) do
+  local w = hl.get_window('address:' .. a)
+  if w then hl.dispatch(hl.dsp.window.move({ window = w, workspace = '$SPECIAL', follow = false })) end
+end" >/dev/null
+fi

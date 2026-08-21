@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "igoroh.omaraoke",
+  "name": "Omaraoke",
+  "version": "0.1.0",
+  "author": "igoroh",
+  "description": "Karaoke overlay: synced lyrics on your wallpaper with an audio-reactive color organ",
+  "kinds": ["service", "overlay"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "overlay": "Overlay.qml"
+  }
+}

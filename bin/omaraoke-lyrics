@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# omaraoke-lyrics — resolve a Track Match from LRCLIB (ADR-0003).
+#
+# Usage: omaraoke-lyrics ARTIST TITLE ALBUM DURATION_SECONDS [--refresh]
+#
+# Prints one JSON object on stdout: the LRCLIB record on a hit, or
+# {"miss":true} when no Track Match exists. Never fails the caller for
+# network reasons — offline behaves exactly like a miss.
+#
+# Cache: ~/.cache/omaraoke/<sha256(artist|title|duration)>.json keyed on the
+# RAW MPRIS fields (identity as reported, before cleaning). Hits live
+# forever; misses expire after ~1 day so an unmatched track doesn't re-pay
+# the network timeout on every replay.
+#
+# Matching ladder: clean → /api/get with album → /api/get without album →
+# /api/search filtered to ±3 s duration, synced lyrics preferred.
+set -uo pipefail
+
+ARTIST="${1-}"
+TITLE="${2-}"
+ALBUM="${3-}"
+DURATION="${4-0}"
+REFRESH="${5-}"
+
+CACHE_DIR="$HOME/.cache/omaraoke"
+MISS_TTL=86400
+API="https://lrclib.net/api"
+UA="omaraoke/0.1.0 (https://github.com/igoroh)"
+
+[[ -n "$TITLE" ]] || { echo '{"miss":true}'; exit 0; }
+DUR=$(printf '%.0f' "$DURATION" 2>/dev/null || echo 0)
+
+mkdir -p "$CACHE_DIR"
+key=$(printf '%s|%s|%s' "$ARTIST" "$TITLE" "$DUR" | sha256sum | cut -d' ' -f1)
+cache_file="$CACHE_DIR/$key.json"
+
+if [[ -s "$cache_file" && "$REFRESH" != "--refresh" ]]; then
+  if [[ $(jq -r '.miss // false' "$cache_file") == "true" ]]; then
+    age=$(( $(date +%s) - $(jq -r '.fetchedAt // 0' "$cache_file") ))
+    if (( age < MISS_TTL )); then echo '{"miss":true}'; exit 0; fi
+  else
+    jq -c 'del(.fetchedAt)' "$cache_file"
+    exit 0
+  fi
+fi
+
+# --- Cleaned Title / Artist ------------------------------------------------
+
+clean() {
+  local s="$1"
+  # decoration groups: (Official Video), [HD], (Lyrics), (Remastered 2009)…
+  s=$(sed -E 's/[([][^)[:cntrl:]]*(official|video|audio|lyric|lyrics|visuali[sz]er|remaster|explicit|hd|hq|4k)[^])]*[])]//Ig' <<<"$s")
+  # feat./ft./featuring clauses, parenthesised or trailing
+  s=$(sed -E 's/[([][^])]*\b(feat|ft|featuring)\.?[^])]*[])]//Ig' <<<"$s")
+  s=$(sed -E 's/[[:space:]]+(feat|ft|featuring)\.?[[:space:]].*$//I' <<<"$s")
+  # collapse whitespace, trim
+  s=$(sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//' <<<"$s")
+  printf '%s' "$s"
+}
+
+# lowercase alphanumerics only, for loose artist-vs-channel comparison
+norm() { tr '[:upper:]' '[:lower:]' <<<"$1" | tr -cd '[:alnum:]'; }
+
+c_title=$(clean "$TITLE")
+c_artist=$(clean "$ARTIST")
+
+# Browser players report the channel as the artist. If the title itself looks
+# like "Artist – Title", split it when the reported artist is absent or
+# channel-shaped (Topic/VEVO channels, or the channel name just restates the
+# left half).
+if [[ "$c_title" =~ ^(.+[^[:space:]])[[:space:]]+[-–—][[:space:]]+([^[:space:]].+)$ ]]; then
+  left="${BASH_REMATCH[1]}"
+  right="${BASH_REMATCH[2]}"
+  na=$(norm "$c_artist"); nl=$(norm "$left")
+  if [[ -z "$na" || "$nl" == *"$na"* || "$na" == *"$nl"* \
+        || "$na" == *"vevo"* || "$na" == *topic ]]; then
+    c_artist="$left"
+    c_title="$right"
+  fi
+fi
+
+# --- Ladder ---------------------------------------------------------------
+
+fetch() { curl -sf --max-time 10 -A "$UA" -G "$@" 2>/dev/null; }
+
+usable() { # a record with lyrics or an instrumental flag
+  jq -e '(.instrumental == true) or ((.syncedLyrics // "") != "") or ((.plainLyrics // "") != "")' \
+    >/dev/null 2>&1 <<<"$1"
+}
+
+result=""
+
+# rung 1: exact get, with album
+if [[ -n "$c_artist" && -n "$ALBUM" && "$DUR" -gt 0 ]]; then
+  r=$(fetch "$API/get" \
+    --data-urlencode "artist_name=$c_artist" \
+    --data-urlencode "track_name=$c_title" \
+    --data-urlencode "album_name=$ALBUM" \
+    --data-urlencode "duration=$DUR") && usable "$r" && result="$r"
+fi
+
+# rung 2: get without album
+if [[ -z "$result" && -n "$c_artist" && "$DUR" -gt 0 ]]; then
+  r=$(fetch "$API/get" \
+    --data-urlencode "artist_name=$c_artist" \
+    --data-urlencode "track_name=$c_title" \
+    --data-urlencode "duration=$DUR") && usable "$r" && result="$r"
+fi
+
+# rung 3: search with cleaned fields, ±3 s duration, synced preferred
+if [[ -z "$result" ]]; then
+  r=$(fetch "$API/search" \
+    --data-urlencode "track_name=$c_title" \
+    ${c_artist:+--data-urlencode "artist_name=$c_artist"})
+  if [[ -n "$r" ]]; then
+    best=$(jq -c --argjson d "$DUR" '
+      [.[] | select($d == 0 or (((.duration // 0) - $d) | fabs) <= 3)]
+      | sort_by([(if (.syncedLyrics // "") != "" then 0 else 1 end),
+                 (((.duration // 0) - $d) | fabs)])
+      | .[0] // empty' <<<"$r" 2>/dev/null)
+    [[ -n "$best" ]] && usable "$best" && result="$best"
+  fi
+fi
+
+# --- Emit + cache ---------------------------------------------------------
+
+now=$(date +%s)
+if [[ -n "$result" ]]; then
+  jq -c --argjson t "$now" '. + {fetchedAt: $t}' <<<"$result" >"$cache_file.tmp" \
+    && mv "$cache_file.tmp" "$cache_file"
+  jq -c 'del(.fetchedAt)' <<<"$result"
+else
+  printf '{"miss":true,"fetchedAt":%s}' "$now" >"$cache_file.tmp" \
+    && mv "$cache_file.tmp" "$cache_file"
+  echo '{"miss":true}'
+fi
+exit 0

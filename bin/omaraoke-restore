@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# omaraoke-restore — the Escape Hatch (and the normal close path).
+#
+# Standalone: needs only hyprctl + jq, no running shell. Reads
+# ~/.local/state/omaraoke/stash.json, moves every window it can still
+# resolve back to its recorded workspace (focused workspace as fallback for
+# entries whose workspace is gone), restores the bar to its remembered
+# state, deletes the stash. Exits 0 quietly when there is nothing to do, so
+# it is safe to run at every shell startup and after every Session.
+set -euo pipefail
+
+STATE_DIR="$HOME/.local/state/omaraoke"
+STASH="$STATE_DIR/stash.json"
+BAR_OFF_FLAG="$HOME/.local/state/omarchy/toggles/bar-off"
+
+mkdir -p "$STATE_DIR"
+exec 9>"$STATE_DIR/.lock"
+flock 9
+
+[[ -s "$STASH" ]] || exit 0
+
+existing=$(hyprctl workspaces -j | jq -c '[.[].id]')
+focused=$(hyprctl activeworkspace -j | jq -r '.id')
+
+# {"0xaddr", wsId}, pairs for the Lua table; fallback applied here in jq
+entries=$(jq -r --argjson ex "$existing" --argjson f "$focused" '
+  .windows[] |
+  "{\"\(.address)\", \(if (.workspace as $w | $ex | index($w)) then .workspace else $f end)},"
+' "$STASH")
+
+if [[ -n "$entries" ]]; then
+  hyprctl eval "
+for _, e in ipairs({$entries}) do
+  local w = hl.get_window('address:' .. e[1])
+  if w then hl.dispatch(hl.dsp.window.move({ window = w, workspace = e[2], follow = false })) end
+end" >/dev/null
+fi
+
+# Un-hide the bar only if the Session hid it (never touch a user's own
+# bar-off toggle). Stashes from before hidBar existed always hid.
+if [[ $(jq -r '.hidBar // true' "$STASH") == "true" \
+   && $(jq -r '.barWasHidden' "$STASH") != "true" ]]; then
+  rm -f "$BAR_OFF_FLAG"
+fi
+
+# A surfaced-then-abandoned stash workspace should not stay on screen
+if hyprctl monitors -j | jq -e '.[] | select(.specialWorkspace.name == "special:karaoke")' >/dev/null; then
+  hyprctl eval "hl.dispatch(hl.dsp.workspace.toggle_special('karaoke'))" >/dev/null
+fi
+
+rm -f "$STASH"
