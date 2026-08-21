@@ -1,35 +1,44 @@
-# Omaraoke
+# 🎤 Omaraoke
 
-Karaoke overlay for the [Omarchy](https://omarchy.org) shell: one keybinding
-clears the screen down to the wallpaper and shows time-synced lyrics for
-whatever the system is playing. Press it again and the desktop comes back
-exactly as it was.
+**Your desktop is now a karaoke stage.**
 
-Lyrics come from [LRCLIB](https://lrclib.net) (open, keyless) and are cached
-in `~/.cache/omaraoke/`. Windows are stashed to a `special:karaoke`
-workspace and restored on exit. The bar stays up (set `hideBar` to hide it
-too), and the overlay never captures mouse or keyboard — you can still
-fast-forward from the bar's media widget mid-session.
+One keybinding sweeps every window off the screen, clears down to your
+wallpaper, and lights up time-synced lyrics for whatever's playing. Press it
+again — your desktop snaps back exactly as you left it. No windows harmed.
 
-## Install
+Works with any player on your system (anything that speaks MPRIS), in any
+Omarchy theme, over any wallpaper.
 
 ```sh
-git clone <this repo> ~/.config/omarchy/plugins/igoroh.omaraoke
-omarchy plugin enable igoroh.omaraoke
+omarchy plugin add https://github.com/igor-gorohovsky/omaraoke.git --enable
 ```
 
-Then add a keybinding to `~/.config/hypr/bindings.lua` (plugins cannot ship
-keybindings — one manual line, matching Omarchy's installer philosophy):
+## 🎶 Sing in two steps
+
+**1. Bind a key** — plugins can't ship keybindings, so add one line to
+`~/.config/hypr/bindings.lua`:
 
 ```lua
 o.bind("SUPER + SHIFT + K", "Karaoke", "omarchy-shell shell toggle igoroh.omaraoke")
 ```
 
-Optional dependency: `pacman -S cava` for the audio-reactive Color Organ
-(coming in P2). Without it the lyrics work; the reactive layer is silently
-absent.
+**2. Play a song, hit `SUPER + SHIFT + K`, sing.** Hit it again when you're
+done and everything comes back.
 
-## Configuration
+Prefer the menu over keys? Add one row to
+`~/.config/omarchy/extensions/omarchy-menu.jsonc`:
+
+```jsonc
+"karaoke": {"icon":"󰍬","label":"Karaoke","action":"omarchy-shell shell toggle igoroh.omaraoke"},
+```
+
+It lands on the root menu and is searchable — and `omarchy menu summon karaoke`
+toggles straight away without drawing the menu, so that works as a keybinding
+target too.
+
+---
+
+## ⚙️ Configure
 
 Settings live inline on the plugin's entry in `~/.config/omarchy/shell.json`:
 
@@ -41,7 +50,7 @@ Settings live inline on the plugin's entry in `~/.config/omarchy/shell.json`:
 |-------------------|------------|---------|
 | `monitors`        | `"all"`    | Mirror the overlay on every screen, or `"focused"` only. |
 | `position`        | `"lower"`  | Lyrics placement: `"lower"` or `"center"`. |
-| `motion`          | `"drift"`  | How the lines move — see below. |
+| `motion`          | `"drift"`  | How the lines move — see [Motion](#-pick-your-motion). |
 | `offsetMs`        | `0`        | Manual sync nudge (positive = lyrics later). |
 | `colorOrgan`      | `true`     | Master switch for the Color Organ (P2). |
 | `autoCloseOnStop` | `true`     | Close the session when playback stops (never on pause). |
@@ -49,28 +58,39 @@ Settings live inline on the plugin's entry in `~/.config/omarchy/shell.json`:
 | `pauseOnClose`    | `true`     | Pause the music when the session closes. |
 | `playOnOpen`      | `true`     | Resume the music when the session opens. |
 
-### Motion
+## 🌊 Pick your motion
 
-`"drift"` (default) never holds still: the lines crawl upward continuously,
+**`drift`** (default) never holds still: the lines crawl upward continuously,
 each one growing from the moment it appears until it sits centred, then
 shrinking away. It slows through the middle of a line and sweeps across the
 change-over, so the current line is still obvious at a glance. Long lines
 crawl slowly, short ones move quickly.
 
-`"handoff"` keeps the current line parked at full size, with a small creep
+**`handoff`** keeps the current line parked at full size, with a small creep
 across the line, and does the growing and shrinking in one sweep just before
 the next line starts. Steadier to read; less alive.
 
-## Behaviour notes
+## 💡 Good to know
 
+- The bar stays up during a session so you can skip tracks from its media
+  widget — the overlay never captures mouse or keyboard. Set `hideBar` if you
+  want it gone too.
 - Synced lyrics need a player that reports playback position over MPRIS;
   otherwise you get the full lyrics as a static view.
 - Tracks without a match show a `No lyrics found` card; the session stays
   open. Misses are retried after a day.
 - Windows opened during a session land under the overlay and appear when it
   closes — deliberate.
+- Want the audio-reactive **Color Organ** (once it ships)? `pacman -S cava`.
+  Without it, lyrics work fine and the reactive layer is silently absent.
 
-## Escape hatch
+## 🔧 Under the hood
+
+Lyrics come from [LRCLIB](https://lrclib.net) — open, keyless — and are cached
+in `~/.cache/omaraoke/`. Windows are stashed to a `special:karaoke` workspace
+during a session and restored on exit.
+
+## 🛟 Rescue
 
 If the shell dies mid-session your windows are on `special:karaoke` and a
 restore map is in `~/.local/state/omaraoke/stash.json`. The shell restores
@@ -82,7 +102,7 @@ them automatically on next start; if it won't start, run:
 
 It needs only `hyprctl` and `jq`.
 
-## Not done yet
+## 🗺️ Not done yet
 
 - **Color organ** — an audio-reactive layer driven by `cava` band levels: a
   background wash and a pulse on the current line's scrim. The config key and
@@ -93,3 +113,17 @@ It needs only `hyprctl` and `jq`.
 - **Sync improvements and fixes** — position is pulled from MPRIS at ~1 Hz and
   extrapolated between polls, which drifts on some players and after seeks.
   `offsetMs` is the manual escape hatch in the meantime.
+
+## Managing the plugin
+
+Update to pull new commits:
+
+```sh
+omarchy plugin update igoroh.omaraoke
+```
+
+Uninstall:
+
+```sh
+omarchy plugin remove igoroh.omaraoke
+```
