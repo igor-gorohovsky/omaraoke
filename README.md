@@ -9,12 +9,8 @@ again — your desktop snaps back exactly as you left it. No windows harmed.
 Works with any player on your system (anything that speaks MPRIS), in any
 Omarchy theme, over any wallpaper.
 
-<p align="center">
-  <video src="https://raw.githubusercontent.com/igor-gorohovsky/omaraoke/master/docs/demo.mp4" controls muted loop playsinline width="100%"></video>
-</p>
 
-*(54 s, with sound — unmute for the full effect. If the embed doesn't play,
-[watch it here](https://github.com/igor-gorohovsky/omaraoke/raw/master/docs/demo.mp4).)*
+https://github.com/user-attachments/assets/231895c6-82a3-4618-ba09-a783588ee2aa
 
 ```sh
 omarchy plugin add https://github.com/igor-gorohovsky/omaraoke.git --enable
