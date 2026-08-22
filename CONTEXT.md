@@ -13,8 +13,9 @@ _Avoid_: karaoke mode, fullscreen mode
 
 **Bar Menu**:
 The popup behind Omaraoke's bar icon: a row that starts or stops the Session,
-and the Motion, Position and Stay Awake choices. The keybinding-free way in, and the only
-place the plugin writes configuration — inline on its own `bar.layout` entry
+and the Motion, Position, Stay Awake and Effects choices. The
+keybinding-free way in, and the only place the plugin writes configuration
+— inline on its own `bar.layout` entry
 in `shell.json`, through the registry's `setBarWidget`. That entry is the
 plugin's single entry: enablement, placement and every setting live on it.
 _Avoid_: settings panel, tray menu, popup
@@ -51,14 +52,43 @@ _Avoid_: line change animation, transition
 **Scrim**:
 The rounded translucent backdrop behind a lyric line. Black or white, opposed
 to the theme foreground's luminance so text contrast is guaranteed;
-re-evaluated on theme change (never by audio); only its geometry/glow may
-animate.
+re-evaluated on theme change (never by audio); only its geometry and glow may
+animate — see Scrim Pulse.
 _Avoid_: background box, shade
 
 **Color Organ**:
-The audio-reactive layer: cava band levels driving a background wash and the
-current line's Scrim pulse. Never modulates text color.
+The audio-reactive layer as a whole: the capture pipeline, the signal layer
+derived from it, and the Scene it drives. Switched on and off by the Bar Menu's
+Effects choice (`colorOrgan`); off means the capture never starts and the Scene
+is never built. Never modulates text color, and never the Scrim's black/white
+choice.
 _Avoid_: visualizer, spectrum
+
+**Signal Layer**:
+Everything between the captured samples and a Scene: the Goertzel bank, the
+auto-gain, the per-band envelopes, the derived Signal Channels and the beat
+detector. Lives in `Dsp.js` with no QML dependency, so it is testable under
+node. One instance per shell, shared by every monitor.
+_Avoid_: analyzer, FFT, DSP layer
+
+**Signal Channel**:
+One of the 0–1 values a Scene consumes: `bass`, `mid`, `high`, `energy`, the
+per-band `levels`, and `beatPulse`. Everything but `beatPulse` is slew-limited,
+and those are the only ones a Scene may map to brightness; `beatPulse` rises
+faster than the guard allows and drives geometry only — radius, scale, counts,
+never the brightness of a large area.
+_Avoid_: band, level, value
+
+**Scene**:
+The consumer of the Signal Channels — the whole look of the reactive layer.
+One of them, Embers (`OrganEmbers.qml`), drawn per monitor whenever the
+`colorOrgan` key is not false. The Scene interface — the six properties
+OrganView binds — is the seam a second Scene would arrive through, but there
+is no picker and no registry until there is one. `darkGround` is part of that
+interface because a Scene needs to know which way "brighter" points: hue and
+saturation come from the accent unchanged, but lightness is clamped away from
+the background, using the same foreground-luminance test the Scrim uses.
+_Avoid_: effect, mode, style, visualization
 
 **Title Card**:
 The ~2 s `Artist — Title` display shown at Session open and on each track

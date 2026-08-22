@@ -292,6 +292,19 @@ Item {
     }
   }
 
+  // ---- Color Organ --------------------------------------------------------
+  // One capture pipeline per shell, shared by every monitor's scene. Bound to
+  // the Session rather than started by it, so nothing is captured while no
+  // Session is open.
+
+  Organ {
+    id: organImpl
+    pluginDir: root.pluginDir
+    wanted: root.sessionActive && root.colorOrganEnabled
+  }
+
+  readonly property var organ: organImpl
+
   Process {
     id: lyricsProc
     stdout: StdioCollector {
