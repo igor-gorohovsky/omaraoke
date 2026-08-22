@@ -53,6 +53,14 @@ Item {
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
       mask: Region {}
 
+      // The Color Organ sits under the karaoke content and over the
+      // wallpaper. It draws nothing at all when disabled or unavailable.
+      OrganView {
+        anchors.fill: parent
+        service: root.service
+        active: panel.visible
+      }
+
       KaraokeView {
         anchors.fill: parent
         service: root.service

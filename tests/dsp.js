@@ -165,6 +165,23 @@ group('silence')
     Math.max(...an.bands).toFixed(4))
 }
 
+// ---- capture loss ----------------------------------------------------------
+
+group('capture loss')
+{
+  // A dead pipeline must fade the scene out, not freeze it mid-swell.
+  const an = run(Dsp.createAnalyzer(), 3, sine(250, 0.4))
+  check('loud first', an.energy > 0.5, an.energy.toFixed(3))
+  const held = an.energy
+  for (let f = 0; f < FPS; f++) an.advance(1 / FPS)
+  check('holding the last hop would freeze it', Math.abs(an.energy - held) < 0.05,
+    `${held.toFixed(3)} → ${an.energy.toFixed(3)}`)
+  an.silence()
+  for (let f = 0; f < 2 * FPS; f++) an.advance(1 / FPS)
+  for (const ch of ['bass', 'mid', 'high', 'energy'])
+    check(`${ch} fades after silence()`, an[ch] < 0.01, an[ch].toFixed(4))
+}
+
 // ---- beat detection --------------------------------------------------------
 
 // A kick: 55 Hz body with a fast decay, over a steady mid-range pad so the

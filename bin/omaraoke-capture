@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# omaraoke-capture — stream the default sink's output as text integers.
+#
+# Usage: omaraoke-capture [RATE] [HOP]
+#
+# Prints one line per HOP samples, each line HOP whitespace-separated signed
+# 16-bit values: exactly one analysis hop for Dsp.js. Runs until killed.
+#
+# Everything here ships with Omarchy already (ADR-0004): pw-record belongs to
+# pipewire-audio, which *is* the audio stack, and od/stdbuf are coreutils.
+# `--raw` is what makes this parseable — without it pw-record writes a
+# container header ahead of the samples. `--target 0` is deliberately NOT set:
+# with auto-targeting PipeWire follows the default sink, so switching output
+# devices mid-Session moves the capture with it.
+#
+# stdbuf line-buffers od, which otherwise fills a 4 KiB pipe buffer first and
+# would deliver the signal in ~3-hop bursts.
+#
+# On exit the trap kills od; pw-record then takes SIGPIPE on its next write,
+# within one hop. Killing od rather than the group keeps this safe to run from
+# a terminal, where the group is the shell's.
+set -uo pipefail
+
+RATE="${1:-8000}"
+HOP="${2:-256}"
+
+command -v pw-record >/dev/null 2>&1 || { echo "omaraoke-capture: pw-record not found" >&2; exit 127; }
+
+pw-record --raw \
+  --properties '{ stream.capture.sink=true, node.name=omaraoke-capture, media.role=Music }' \
+  --latency "$HOP" \
+  --format s16 --rate "$RATE" --channels 1 - 2>/dev/null \
+  | stdbuf -oL od -An -td2 -w"$((HOP * 2))" -v &
+pipeline=$!
+
+trap 'kill "$pipeline" 2>/dev/null' TERM INT HUP EXIT
+wait "$pipeline"

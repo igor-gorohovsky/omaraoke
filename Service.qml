@@ -49,6 +49,11 @@ Item {
   readonly property string motionPreset: pluginConfig.motion === "handoff" ? "handoff" : "drift"
   readonly property bool colorOrganEnabled: pluginConfig.colorOrgan !== false
   readonly property bool stayAwake: pluginConfig.stayAwake !== false
+  // Scene name, or "shuffle" to pick one per track. Validated in OrganView,
+  // which owns the list of scenes that exist.
+  readonly property string organStyle:
+    typeof pluginConfig.organStyle === "string" && pluginConfig.organStyle !== ""
+      ? pluginConfig.organStyle : "shuffle"
   readonly property bool autoCloseOnStop: pluginConfig.autoCloseOnStop !== false
   readonly property bool hideBar: pluginConfig.hideBar === true
   readonly property bool pauseOnClose: pluginConfig.pauseOnClose !== false
@@ -291,6 +296,19 @@ Item {
       lyricsState = "nolyrics"
     }
   }
+
+  // ---- Color Organ --------------------------------------------------------
+  // One capture pipeline per shell, shared by every monitor's scene. Bound to
+  // the Session rather than started by it, so nothing is captured while no
+  // Session is open.
+
+  Organ {
+    id: organImpl
+    pluginDir: root.pluginDir
+    wanted: root.sessionActive && root.colorOrganEnabled
+  }
+
+  readonly property var organ: organImpl
 
   Process {
     id: lyricsProc

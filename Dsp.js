@@ -413,6 +413,16 @@ function createAnalyzer(options) {
     }
   }
 
+  // No data is arriving — the pipeline died, or is between restarts. Drop the
+  // targets rather than holding the last hop: the envelopes then release to
+  // zero over their own time constant, so a scene fades out instead of
+  // freezing mid-swell on whatever the last thing it heard was.
+  self.silence = function () {
+    for (var k = 0; k < o.bandCount; k++)
+      self.raw[k] = 0
+    self.gate = 0
+  }
+
   // Capture died, or the Session ended: leave nothing lit behind.
   self.reset = function () {
     ringAt = 0
