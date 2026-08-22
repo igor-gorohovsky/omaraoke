@@ -3,11 +3,13 @@
 **Your desktop is now a karaoke stage.**
 
 One click in the topbar sweeps every window off the screen, clears down to
-your wallpaper, and lights up time-synced lyrics for whatever's playing. Click
-again — your desktop snaps back exactly as you left it. No windows harmed.
+your wallpaper, and lights up time-synced lyrics for whatever's playing — over
+a color organ that moves with the music. Click again — your desktop snaps back
+exactly as you left it. No windows harmed.
 
 Works with any player on your system (anything that speaks MPRIS), in any
-Omarchy theme, over any wallpaper.
+Omarchy theme, over any wallpaper. **Nothing extra to install** — not even for
+the reactive layer.
 
 <img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/d46fe981-86df-4cb0-b234-30948ad9f07c" />
 
@@ -103,7 +105,8 @@ set here.
 | `monitors`        | `"all"`    | Mirror the overlay on every screen, or `"focused"` only. |
 | `position`        | `"lower"`  | Lyrics placement: `"lower"` or `"center"`. |
 | `motion`          | `"drift"`  | How the lines move — see [Motion](#-pick-your-motion). |
-| `colorOrgan`      | `true`     | Master switch for the Color Organ (P2). |
+| `colorOrgan`      | `true`     | Master switch for the color organ. |
+| `organStyle`      | `"shuffle"`| Which visual — see [Color organ](#-the-color-organ). |
 | `stayAwake`       | `true`     | Turn on Omarchy's Stay Awake for the session (no screensaver, no lock); restored on close unless you had it on already. |
 | `autoCloseOnStop` | `true`     | Close the session when playback stops (never on pause). |
 | `hideBar`         | `false`    | Hide the bar during a session; it returns on close. |
@@ -122,6 +125,32 @@ crawl slowly, short ones move quickly.
 across the line, and does the growing and shrinking in one sweep just before
 the next line starts. Steadier to read; less alive.
 
+## 🌈 The color organ
+
+Behind the lyrics, the wallpaper reacts to whatever is coming out of your
+speakers. Every color is your theme's accent, a few degrees either side of it —
+never a rainbow, and it follows a theme switch while you're singing.
+
+There are four looks, and by default you get a different one per song:
+
+| `organStyle` | |
+|---|---|
+| `"shuffle"` *(default)* | Picks one per track. The same song always gets the same one, so your favourites keep their look. |
+| `"breath"` | A big soft glow rising off the bottom edge, swelling with the bass. |
+| `"spectrum"` | Thin mirrored bars along the bottom, bass in the middle. |
+| `"embers"` | Sparks drifting up, thrown by the cymbals and the beat. |
+| `"aurora"` | Three slow curtains crossing each other. |
+
+Whichever is running, the line you're singing gets a gentle glow and a ~2%
+swell that breathes with the vocals and cymbals.
+
+Nothing flashes. Every channel that can change brightness is rate-limited
+before any visual sees it, so a full swing takes at least a sixth of a second
+no matter how hard the track hits — well under the threshold that matters for
+photosensitivity. Lyric text never changes color at all.
+
+Set `"colorOrgan": false` if you'd rather have just the lyrics.
+
 ## 💡 Good to know
 
 - The bar stays up during a session so you can skip tracks from its media
@@ -133,8 +162,10 @@ the next line starts. Steadier to read; less alive.
   open. Misses are retried after a day.
 - Windows opened during a session land under the overlay and appear when it
   closes — deliberate.
-- Want the audio-reactive **Color Organ** (once it ships)? `pacman -S cava`.
-  Without it, lyrics work fine and the reactive layer is silently absent.
+- The color organ listens to your speaker output, not your microphone, and
+  only while a session is open. Nothing is recorded and nothing leaves the
+  machine — the audio goes straight into the visuals.
+- Change your output device mid-song and the organ follows it.
 
 ## 📦 Requirements & dependencies
 
@@ -145,9 +176,9 @@ there.
 |---|---|---|
 | Omarchy shell (Quickshell/QML) | hosts the service and the overlay | required |
 | Hyprland + `hyprctl` | stashing and restoring windows | required |
-| `bash`, `jq`, `curl`, `sed`, `coreutils`, `util-linux` (`flock`) | the scripts in `bin/` | required |
+| `bash`, `jq`, `curl`, `sed`, `coreutils` (`od`, `stdbuf`), `util-linux` (`flock`) | the scripts in `bin/` | required |
 | A player that speaks MPRIS | track identity and playback position | required |
-| [`cava`](https://github.com/karlstav/cava) | the audio-reactive Color Organ (not drawn yet) | optional |
+| PipeWire (`pw-record`) | capturing your speaker output for the color organ | required |
 | [LRCLIB](https://lrclib.net) | lyric lookup over HTTPS — open, keyless, no account | external service |
 
 The only thing that leaves your machine is the artist / title / album /
@@ -176,6 +207,14 @@ Lyrics come from [LRCLIB](https://lrclib.net) — open, keyless — and are cach
 in `~/.cache/omaraoke/`. Windows are stashed to a `special:karaoke` workspace
 during a session and restored on exit.
 
+The color organ captures your default sink's own output with `pw-record`,
+turns it into text integers with `od`, and analyses it in about a hundred lines
+of JavaScript — a bank of Goertzel filters across twelve bands, with per-band
+envelopes, automatic gain and beat detection. That is why there is nothing to
+install: every piece of it is either already on your machine or in this repo,
+readable. The analysis costs well under 1% of one core, and you can run its
+test suite yourself with `node tests/dsp.js`.
+
 ## 🛟 Rescue
 
 If the shell dies mid-session your windows are on `special:karaoke` and a
@@ -190,9 +229,6 @@ It needs only `hyprctl` and `jq`.
 
 ## 🗺️ Not done yet
 
-- **Color organ** — an audio-reactive layer driven by `cava` band levels: a
-  background wash and a pulse on the current line's scrim. The config key and
-  the optional dependency are already in place; nothing is drawn yet.
 - **Word-by-word following** — highlighting within the line as it is sung,
   rather than a line at a time. Needs per-word timings, which LRCLIB does not
   carry, so it means local transcription and alignment.

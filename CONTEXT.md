@@ -51,14 +51,40 @@ _Avoid_: line change animation, transition
 **Scrim**:
 The rounded translucent backdrop behind a lyric line. Black or white, opposed
 to the theme foreground's luminance so text contrast is guaranteed;
-re-evaluated on theme change (never by audio); only its geometry/glow may
-animate.
+re-evaluated on theme change (never by audio); only its geometry and glow may
+animate — see Scrim Pulse.
 _Avoid_: background box, shade
 
 **Color Organ**:
-The audio-reactive layer: cava band levels driving a background wash and the
-current line's Scrim pulse. Never modulates text color.
+The audio-reactive layer as a whole: the capture pipeline, the signal layer
+derived from it, the Scene it drives, and the Scrim pulse. Never modulates
+text color, and never the Scrim's black/white choice.
 _Avoid_: visualizer, spectrum
+
+**Signal Layer**:
+Everything between the captured samples and a Scene: the Goertzel bank, the
+auto-gain, the per-band envelopes, the derived Signal Channels and the beat
+detector. Lives in `Dsp.js` with no QML dependency, so it is testable under
+node. One instance per shell, shared by every monitor.
+_Avoid_: analyzer, FFT, DSP layer
+
+**Signal Channel**:
+One of the five 0–1 values a Scene consumes: `bass`, `mid`, `high`, `energy`
+and `beatPulse`. The first four are slew-limited and are the only ones a Scene
+may map to brightness; `beatPulse` rises faster and drives geometry only.
+_Avoid_: band, level, value
+
+**Scene**:
+One consumer of the Signal Channels — one whole look for the reactive layer.
+Exactly one is drawn at a time, per monitor, chosen by the `organStyle` key or
+by a hash of the track when that is `"shuffle"`. Named ones: Breath (the
+default), Spectrum, Embers, Aurora.
+_Avoid_: effect, mode, style, visualization
+
+**Scrim Pulse**:
+The always-on part of the Color Organ: the current line's plate swelling ~2%
+and picking up a glow with the mid/high envelope, whatever Scene is running.
+_Avoid_: beat effect, bounce
 
 **Title Card**:
 The ~2 s `Artist — Title` display shown at Session open and on each track
