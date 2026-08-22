@@ -2,15 +2,45 @@
   "schemaVersion": 1,
   "id": "igoroh.omaraoke",
   "name": "Omaraoke",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "igoroh",
   "description": "Karaoke overlay: synced lyrics on your wallpaper with an audio-reactive color organ",
   "license": "MIT",
   "homepage": "https://github.com/igor-gorohovsky/omaraoke",
-  "kinds": ["service", "overlay"],
+  "kinds": ["service", "overlay", "bar-widget"],
   "keepLoaded": true,
   "entryPoints": {
     "service": "Service.qml",
-    "overlay": "Overlay.qml"
+    "overlay": "Overlay.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Omaraoke",
+    "description": "Start and stop karaoke from the bar, and pick how the lyrics move and where they sit",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "motion": "drift",
+      "position": "lower"
+    },
+    "schema": [
+      {
+        "key": "motion",
+        "type": "enum",
+        "label": "Motion",
+        "description": "How the lyric lines move: a continuous upward crawl, or a line that holds the centre and hands over at the change.",
+        "options": ["drift", "handoff"],
+        "defaultValue": "drift"
+      },
+      {
+        "key": "position",
+        "type": "enum",
+        "label": "Position",
+        "description": "Where the lyrics sit on screen.",
+        "options": ["lower", "center"],
+        "defaultValue": "lower"
+      }
+    ]
   }
 }

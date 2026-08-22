@@ -2,8 +2,8 @@
 
 **Your desktop is now a karaoke stage.**
 
-One keybinding sweeps every window off the screen, clears down to your
-wallpaper, and lights up time-synced lyrics for whatever's playing. Press it
+One click in the topbar sweeps every window off the screen, clears down to
+your wallpaper, and lights up time-synced lyrics for whatever's playing. Click
 again — your desktop snaps back exactly as you left it. No windows harmed.
 
 Works with any player on your system (anything that speaks MPRIS), in any
@@ -22,23 +22,48 @@ https://github.com/user-attachments/assets/231895c6-82a3-4618-ba09-a783588ee2aa
 omarchy plugin add https://github.com/igor-gorohovsky/omaraoke.git --enable
 ```
 
-## 🎶 Sing in two steps
+## 🎶 Sing
 
-**1. Bind a key** — plugins can't ship keybindings, so add one line to
+**Play a song, click the music icon in your topbar, hit Start Karaoke, sing.**
+Open the menu again and hit Stop Karaoke when you're done — everything comes
+back.
+
+### 🎛️ The topbar menu
+
+Installing with `--enable` — or `omarchy plugin enable igoroh.omaraoke` later —
+drops the icon into the right-hand section of the bar. Move it with
+`omarchy bar move igoroh.omaraoke --section center`.
+
+| Row | What it does |
+|---|---|
+| **Start Karaoke** / **Stop Karaoke** | Opens or closes the session, exactly as the keybinding does. |
+| **Motion** | `Drift` or `Hand-off` — see [Motion](#-pick-your-motion). |
+| **Position** | Lyrics `Lower` or `Center`. |
+
+Arrow keys (or `hjkl`) move, `Enter` picks, `Esc` closes. Nothing here needs a
+key bound or a config file opened — the menu is the whole no-keybinding path.
+
+> **Coming from 0.1?** Omaraoke is a bar widget now, so it lives in the bar
+> layout rather than the plugin list. Re-enable it once to move it across:
+> `omarchy plugin disable igoroh.omaraoke && omarchy plugin enable igoroh.omaraoke`.
+
+### ⌨️ Or bind a key
+
+Plugins can't ship keybindings, so add one line to
 `~/.config/hypr/bindings.lua`:
 
 ```lua
 o.bind("SUPER + SHIFT + K", "Karaoke", "omarchy-shell shell toggle igoroh.omaraoke")
 ```
 
-**2. Play a song, hit `SUPER + SHIFT + K`, sing.** Hit it again when you're
-done and everything comes back.
+Hit it to start, hit it again to stop.
 
-Prefer the menu over keys? Add one row to
-`~/.config/omarchy/extensions/omarchy-menu.jsonc`:
+### 🔎 Or the Omarchy menu
+
+Add one row to `~/.config/omarchy/extensions/omarchy-menu.jsonc`:
 
 ```jsonc
-"karaoke": {"icon":"󰍬","label":"Karaoke","action":"omarchy-shell shell toggle igoroh.omaraoke"},
+"karaoke": {"icon":"󰝚","label":"Karaoke","action":"omarchy-shell shell toggle igoroh.omaraoke"},
 ```
 
 It lands on the root menu and is searchable — and `omarchy menu summon karaoke`
@@ -49,18 +74,34 @@ target too.
 
 ## ⚙️ Configure
 
-Settings live inline on the plugin's entry in `~/.config/omarchy/shell.json`:
+One plugin, one entry: Omaraoke's widget sits in the bar layout in
+`~/.config/omarchy/shell.json`, and every setting lives inline on that entry.
 
 ```json
-{ "id": "igoroh.omaraoke", "position": "center", "offsetMs": 0 }
+{
+  "bar": {
+    "layout": {
+      "right": [
+        { "id": "igoroh.omaraoke", "position": "center", "motion": "handoff" }
+      ]
+    }
+  }
+}
 ```
+
+Set one without opening the file:
+
+```sh
+omarchy bar set igoroh.omaraoke position center
+```
+
+`position` and `motion` are in the topbar menu too; the rest are set here.
 
 | Key               | Default    | Meaning |
 |-------------------|------------|---------|
 | `monitors`        | `"all"`    | Mirror the overlay on every screen, or `"focused"` only. |
 | `position`        | `"lower"`  | Lyrics placement: `"lower"` or `"center"`. |
 | `motion`          | `"drift"`  | How the lines move — see [Motion](#-pick-your-motion). |
-| `offsetMs`        | `0`        | Manual sync nudge (positive = lyrics later). |
 | `colorOrgan`      | `true`     | Master switch for the Color Organ (P2). |
 | `autoCloseOnStop` | `true`     | Close the session when playback stops (never on pause). |
 | `hideBar`         | `false`    | Hide the bar during a session; it returns on close. |
@@ -112,10 +153,13 @@ duration of the current track, sent to LRCLIB to find its lyrics.
 
 ## 🔒 What it touches
 
-Omaraoke never writes your configuration. The keybinding and the menu row
-above are yours to add and yours to remove; settings are *read* from the entry
-you put in `~/.config/omarchy/shell.json` and never written back. At runtime it
-creates only its own files:
+Omaraoke writes exactly one thing to your configuration: the settings you
+change from its topbar menu, `motion` and `position`, saved inline on its own
+bar-layout entry in `~/.config/omarchy/shell.json`. It goes through the same
+shell API `omarchy bar set` uses and touches nothing else in that file. The
+keybinding and the Omarchy menu row above are yours to add and yours to
+remove, and every other setting is *read* from your entry and never written
+back. At runtime it creates only its own files:
 
 - `~/.cache/omaraoke/` — the lyric cache.
 - `~/.local/state/omaraoke/stash.json` — the window restore map, deleted when
@@ -152,7 +196,6 @@ It needs only `hyprctl` and `jq`.
   carry, so it means local transcription and alignment.
 - **Sync improvements and fixes** — position is pulled from MPRIS at ~1 Hz and
   extrapolated between polls, which drifts on some players and after seeks.
-  `offsetMs` is the manual escape hatch in the meantime.
 
 ## Managing the plugin
 
@@ -171,7 +214,8 @@ omarchy plugin remove igoroh.omaraoke
 That takes the plugin away completely. To clean up after it, drop the
 keybinding line from `~/.config/hypr/bindings.lua` (and the menu row from
 `~/.config/omarchy/extensions/omarchy-menu.jsonc`) if you added them, remove
-the `igoroh.omaraoke` entry from `~/.config/omarchy/shell.json`, and delete
+any `igoroh.omaraoke` entry left under `bar.layout` in
+`~/.config/omarchy/shell.json`, and delete
 `~/.cache/omaraoke/` and `~/.local/state/omaraoke/`.
 
 ## 📄 License

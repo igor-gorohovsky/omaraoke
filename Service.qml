@@ -21,21 +21,32 @@ Item {
   }
   readonly property string pluginId: manifest && manifest.id ? manifest.id : "igoroh.omaraoke"
 
-  // ---- Configuration (inline fields on our plugins[] entry in shell.json) --
+  // ---- Configuration (inline fields on our bar.layout entry in shell.json) -
+  // One plugin, one entry: Omaraoke ships a bar widget, so the shell records
+  // it in bar.layout.<section> and every setting lives inline on that entry.
+  // It is the entry the bar hands to BarWidget.qml as `settings`, the one the
+  // bar menu writes through, and the one `omarchy bar set igoroh.omaraoke
+  // <key> <value>` edits.
 
   readonly property var pluginConfig: {
     var cfg = shell && shell.shellConfig ? shell.shellConfig : null
-    if (!cfg || !Array.isArray(cfg.plugins))
+    var layout = cfg && cfg.bar ? cfg.bar.layout : null
+    if (!layout)
       return ({})
-    for (var i = 0; i < cfg.plugins.length; i++)
-      if (cfg.plugins[i] && cfg.plugins[i].id === root.pluginId)
-        return cfg.plugins[i]
+    var sections = ["left", "center", "right"]
+    for (var s = 0; s < sections.length; s++) {
+      var entries = layout[sections[s]]
+      if (!Array.isArray(entries))
+        continue
+      for (var i = 0; i < entries.length; i++)
+        if (entries[i] && String(entries[i].id) === root.pluginId)
+          return entries[i]
+    }
     return ({})
   }
   readonly property string monitorsMode: pluginConfig.monitors === "focused" ? "focused" : "all"
   readonly property string positionPreset: pluginConfig.position === "center" ? "center" : "lower"
   readonly property string motionPreset: pluginConfig.motion === "handoff" ? "handoff" : "drift"
-  readonly property int offsetMs: Number(pluginConfig.offsetMs) || 0
   readonly property bool colorOrganEnabled: pluginConfig.colorOrgan !== false
   readonly property bool autoCloseOnStop: pluginConfig.autoCloseOnStop !== false
   readonly property bool hideBar: pluginConfig.hideBar === true
@@ -125,7 +136,7 @@ Item {
   property real anchorAt: 0
 
   function nowPositionMs() {
-    var p = anchorMs + (playing ? Date.now() - anchorAt : 0) + offsetMs
+    var p = anchorMs + (playing ? Date.now() - anchorAt : 0)
     return p < 0 ? 0 : p
   }
 
