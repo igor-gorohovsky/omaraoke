@@ -2,7 +2,7 @@ import QtQuick
 import qs.Commons
 import qs.Ui
 
-// Omaraoke's bar menu: the keybinding-free way to run a Session, plus the two
+// Omaraoke's bar menu: the keybinding-free way to run a Session, plus the few
 // settings worth changing on the spot. Settings are read from and written to
 // the widget's own bar.layout entry — one plugin, one entry, values inline on
 // it — which is what Service.qml reads and what `omarchy bar set` edits.
@@ -36,6 +36,10 @@ Panel {
     var value = settings ? settings.position : undefined
     return value === "center" ? "center" : "lower"
   }
+  readonly property string stayAwakeValue: {
+    var value = settings ? settings.stayAwake : undefined
+    return value === false ? "off" : "on"
+  }
 
   readonly property var motionOptions: [
     { value: "drift", label: "Drift" },
@@ -45,11 +49,15 @@ Panel {
     { value: "lower", label: "Lower" },
     { value: "center", label: "Center" }
   ]
+  readonly property var stayAwakeOptions: [
+    { value: "on", label: "On" },
+    { value: "off", label: "Off" }
+  ]
 
   readonly property color fg: bar ? bar.foreground : Color.foreground
   readonly property string fontFam: bar ? bar.fontFamily : Style.font.family
 
-  // ---- Keyboard cursor: row 0 is the Session action, rows 1 and 2 are the
+  // ---- Keyboard cursor: row 0 is the Session action, rows 1 to 3 are the
   //      two-option settings. Mouse hover moves the same cursor, so only one
   //      highlight is ever on screen.
   property bool cursorActive: false
@@ -66,7 +74,7 @@ Panel {
       return
     }
     if (dy !== 0) {
-      cursorRow = Math.max(0, Math.min(2, cursorRow + dy))
+      cursorRow = Math.max(0, Math.min(3, cursorRow + dy))
       cursorCol = Math.min(cursorCol, columnsIn(cursorRow) - 1)
     } else if (dx !== 0) {
       cursorCol = Math.max(0, Math.min(columnsIn(cursorRow) - 1, cursorCol + dx))
@@ -80,8 +88,10 @@ Panel {
       toggleSession()
     else if (cursorRow === 1)
       writeSetting("motion", motionOptions[cursorCol].value)
-    else
+    else if (cursorRow === 2)
       writeSetting("position", positionOptions[cursorCol].value)
+    else
+      writeSetting("stayAwake", stayAwakeOptions[cursorCol].value === "on")
   }
 
   function setCursor(row, col) {
@@ -194,8 +204,20 @@ Panel {
           onChosen: function(value) { root.writeSetting("position", value) }
         }
 
+        // ---------- Stay Awake ----------
+        // On: the Session flips the shell's own Stay Awake state (the topbar
+        // 󰅶 glyph) for its duration, holding off screensaver and lock;
+        // restored on close unless the user had it on already.
+        ChoiceRow {
+          row: 3
+          title: "STAY AWAKE"
+          options: root.stayAwakeOptions
+          current: root.stayAwakeValue
+          onChosen: function(value) { root.writeSetting("stayAwake", value === "on") }
+        }
+
         // The Color Organ ("effects", config key `colorOrgan`) gets its own
-        // ChoiceRow here once it actually draws something. Give it row 3 and
+        // ChoiceRow here once it actually draws something. Give it row 4 and
         // widen columnsIn() to match.
       }
     }

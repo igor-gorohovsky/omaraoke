@@ -3,10 +3,11 @@
 #
 # Records every window on each monitor's active workspace into
 # ~/.local/state/omaraoke/stash.json (address → workspace, plus what we did
-# to the bar), then moves them all to special:karaoke. The bar stays
-# visible by default; pass --hide-bar to hide it for the Session. The state
-# file is written BEFORE any window moves so a crash at any point is
-# recoverable by omaraoke-restore.
+# to the bar and to the shell's stay-awake state), then moves them all to
+# special:karaoke. The bar stays visible by default; pass --hide-bar to hide
+# it for the Session. Pass --stay-awake to flip the shell's Stay Awake state
+# on (the topbar 󰅶 glyph) for the Session. The state file is written BEFORE
+# any window moves so a crash at any point is recoverable by omaraoke-restore.
 #
 # Window moves go through `hyprctl eval` (Lua dispatch) — this Hyprland is
 # Lua-configured, mirroring the user's show-desktop technique (ADR-0002 keeps
@@ -14,12 +15,19 @@
 set -euo pipefail
 
 hide_bar=false
-[[ "${1:-}" == "--hide-bar" ]] && hide_bar=true
+stay_awake=false
+for arg in "$@"; do
+  case "$arg" in
+    --hide-bar) hide_bar=true ;;
+    --stay-awake) stay_awake=true ;;
+  esac
+done
 
 STATE_DIR="$HOME/.local/state/omaraoke"
 STASH="$STATE_DIR/stash.json"
 SPECIAL="special:karaoke"
 BAR_OFF_FLAG="$HOME/.local/state/omarchy/toggles/bar-off"
+STAY_AWAKE_FLAG="$HOME/.local/state/omarchy/indicators/stay-awake"
 
 mkdir -p "$STATE_DIR"
 exec 9>"$STATE_DIR/.lock"
@@ -33,12 +41,18 @@ fi
 bar_was_hidden=false
 [[ -f "$BAR_OFF_FLAG" ]] && bar_was_hidden=true
 
+stay_awake_was_on=false
+[[ -f "$STAY_AWAKE_FLAG" ]] && stay_awake_was_on=true
+
 visible=$(hyprctl monitors -j | jq -c '[.[].activeWorkspace.id]')
 hyprctl clients -j | jq --argjson vis "$visible" --argjson bar "$bar_was_hidden" \
-  --argjson hid "$hide_bar" '{
+  --argjson hid "$hide_bar" \
+  --argjson awake "$stay_awake_was_on" --argjson setawake "$stay_awake" '{
     version: 1,
     barWasHidden: $bar,
     hidBar: $hid,
+    stayAwakeWasOn: $awake,
+    setStayAwake: $setawake,
     windows: [.[] | select(.workspace.id as $i | $vis | index($i)) | {address, workspace: .workspace.id}]
   }' >"$STASH.tmp"
 mv "$STASH.tmp" "$STASH"
@@ -48,6 +62,15 @@ mv "$STASH.tmp" "$STASH"
 if [[ "$hide_bar" == "true" ]]; then
   mkdir -p "$(dirname "$BAR_OFF_FLAG")"
   touch "$BAR_OFF_FLAG"
+fi
+
+# Stay Awake: same flag-file mechanism as `omarchy toggle idle stay-awake`
+# — the shell watches the indicators dir, disables screensaver + lock, and
+# lights the topbar glyph. omaraoke-restore undoes it unless the user had
+# it on already.
+if [[ "$stay_awake" == "true" ]]; then
+  mkdir -p "$(dirname "$STAY_AWAKE_FLAG")"
+  touch "$STAY_AWAKE_FLAG"
 fi
 
 entries=$(jq -r '.windows[].address | "\"" + . + "\","' "$STASH")

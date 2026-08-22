@@ -95,7 +95,8 @@ Set one without opening the file:
 omarchy bar set igoroh.omaraoke position center
 ```
 
-`position` and `motion` are in the topbar menu too; the rest are set here.
+`position`, `motion` and `stayAwake` are in the topbar menu too; the rest are
+set here.
 
 | Key               | Default    | Meaning |
 |-------------------|------------|---------|
@@ -103,6 +104,7 @@ omarchy bar set igoroh.omaraoke position center
 | `position`        | `"lower"`  | Lyrics placement: `"lower"` or `"center"`. |
 | `motion`          | `"drift"`  | How the lines move — see [Motion](#-pick-your-motion). |
 | `colorOrgan`      | `true`     | Master switch for the Color Organ (P2). |
+| `stayAwake`       | `true`     | Turn on Omarchy's Stay Awake for the session (no screensaver, no lock); restored on close unless you had it on already. |
 | `autoCloseOnStop` | `true`     | Close the session when playback stops (never on pause). |
 | `hideBar`         | `false`    | Hide the bar during a session; it returns on close. |
 | `pauseOnClose`    | `true`     | Pause the music when the session closes. |
