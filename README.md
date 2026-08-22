@@ -203,12 +203,12 @@ in `~/.cache/omaraoke/`. Windows are stashed to a `special:karaoke` workspace
 during a session and restored on exit.
 
 The color organ captures your default sink's own output with `pw-record`,
-turns it into text integers with `od`, and analyses it in about a hundred lines
-of JavaScript — a bank of Goertzel filters across twelve bands, with per-band
-envelopes, automatic gain and beat detection. That is why there is nothing to
-install: every piece of it is either already on your machine or in this repo,
-readable. The analysis costs well under 1% of one core, and you can run its
-test suite yourself with `node tests/dsp.js`.
+turns it into text integers with `od`, and analyses it in about three hundred
+lines of JavaScript — a bank of Goertzel filters across twelve bands, with
+per-band envelopes, automatic gain and beat detection. That is why there is
+nothing to install: every piece of it is either already on your machine or in
+this repo, readable. The analysis costs well under 1% of one core, and you can
+run its test suite yourself with `node tests/dsp.js`.
 
 ## 🛟 Rescue
 
