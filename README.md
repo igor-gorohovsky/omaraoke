@@ -11,12 +11,11 @@ Works with any player on your system (anything that speaks MPRIS), in any
 Omarchy theme, over any wallpaper. **Nothing extra to install** — not even for
 the reactive layer.
 
-<img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/d46fe981-86df-4cb0-b234-30948ad9f07c" />
+<img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/8633499c-71cd-46cc-9ac3-e24020e47db5" />
 
 
-https://github.com/user-attachments/assets/231895c6-82a3-4618-ba09-a783588ee2aa
 
-*(54 s, with sound — unmute for the full effect.)*
+https://github.com/user-attachments/assets/06efe8f4-0bc0-4ca3-8204-b24f785a9aee
 
 ## 📥 Install
 
