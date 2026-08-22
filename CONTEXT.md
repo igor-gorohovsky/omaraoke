@@ -6,9 +6,18 @@ lyrics for the system-playing track, reacts to the audio.
 ## Language
 
 **Session**:
-The period between summoning the overlay and closing it (keybinding again, or
-auto-close on playback Stopped). Everything stashed at open is restored at close.
+The period between summoning the overlay and closing it (Bar Menu or keybinding
+again, or auto-close on playback Stopped). Everything stashed at open is
+restored at close.
 _Avoid_: karaoke mode, fullscreen mode
+
+**Bar Menu**:
+The popup behind Omaraoke's bar icon: a row that starts or stops the Session,
+and the Motion and Position choices. The keybinding-free way in, and the only
+place the plugin writes configuration — inline on its own `bar.layout` entry
+in `shell.json`, through the registry's `setBarWidget`. That entry is the
+plugin's single entry: enablement, placement and every setting live on it.
+_Avoid_: settings panel, tray menu, popup
 
 **Stash**:
 The set of windows moved to the `special:karaoke` workspace for a Session,
