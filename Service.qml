@@ -48,6 +48,7 @@ Item {
   readonly property string positionPreset: pluginConfig.position === "center" ? "center" : "lower"
   readonly property string motionPreset: pluginConfig.motion === "handoff" ? "handoff" : "drift"
   readonly property bool colorOrganEnabled: pluginConfig.colorOrgan !== false
+  readonly property bool stayAwake: pluginConfig.stayAwake !== false
   readonly property bool autoCloseOnStop: pluginConfig.autoCloseOnStop !== false
   readonly property bool hideBar: pluginConfig.hideBar === true
   readonly property bool pauseOnClose: pluginConfig.pauseOnClose !== false
@@ -228,6 +229,15 @@ Item {
       startTrack()
   }
 
+  // A Stay Awake menu flip mid-Session applies immediately; the script keeps
+  // stash.json's bookkeeping consistent so restore still never clears a
+  // user's own stay-awake toggle.
+  onStayAwakeChanged: {
+    if (sessionActive)
+      Quickshell.execDetached(["bash", pluginDir + "/bin/omaraoke-stay-awake",
+                               stayAwake ? "on" : "off"])
+  }
+
   // ---- Lyrics pipeline ----------------------------------------------------
 
   function startTrack() {
@@ -293,6 +303,7 @@ Item {
     id: stashProc
     command: ["bash", root.pluginDir + "/bin/omaraoke-stash"]
       .concat(root.hideBar ? ["--hide-bar"] : [])
+      .concat(root.stayAwake ? ["--stay-awake"] : [])
     stderr: StdioCollector {
       onStreamFinished: if (String(text || "") !== "") console.warn("omaraoke-stash:", text)
     }

@@ -4,14 +4,15 @@
 # Standalone: needs only hyprctl + jq, no running shell. Reads
 # ~/.local/state/omaraoke/stash.json, moves every window it can still
 # resolve back to its recorded workspace (focused workspace as fallback for
-# entries whose workspace is gone), restores the bar to its remembered
-# state, deletes the stash. Exits 0 quietly when there is nothing to do, so
+# entries whose workspace is gone), restores the bar and the shell's
+# stay-awake state to their remembered states, deletes the stash. Exits 0 quietly when there is nothing to do, so
 # it is safe to run at every shell startup and after every Session.
 set -euo pipefail
 
 STATE_DIR="$HOME/.local/state/omaraoke"
 STASH="$STATE_DIR/stash.json"
 BAR_OFF_FLAG="$HOME/.local/state/omarchy/toggles/bar-off"
+STAY_AWAKE_FLAG="$HOME/.local/state/omarchy/indicators/stay-awake"
 
 mkdir -p "$STATE_DIR"
 exec 9>"$STATE_DIR/.lock"
@@ -41,6 +42,14 @@ fi
 if [[ $(jq -r '.hidBar // true' "$STASH") == "true" \
    && $(jq -r '.barWasHidden' "$STASH") != "true" ]]; then
   rm -f "$BAR_OFF_FLAG"
+fi
+
+# Allow idle again only if the Session turned Stay Awake on (never clear a
+# user's own stay-awake toggle). Stashes from before setStayAwake existed
+# never set it.
+if [[ $(jq -r '.setStayAwake // false' "$STASH") == "true" \
+   && $(jq -r '.stayAwakeWasOn' "$STASH") != "true" ]]; then
+  rm -f "$STAY_AWAKE_FLAG"
 fi
 
 # A surfaced-then-abandoned stash workspace should not stay on screen

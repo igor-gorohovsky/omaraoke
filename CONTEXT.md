@@ -13,7 +13,7 @@ _Avoid_: karaoke mode, fullscreen mode
 
 **Bar Menu**:
 The popup behind Omaraoke's bar icon: a row that starts or stops the Session,
-and the Motion and Position choices. The keybinding-free way in, and the only
+and the Motion, Position and Stay Awake choices. The keybinding-free way in, and the only
 place the plugin writes configuration — inline on its own `bar.layout` entry
 in `shell.json`, through the registry's `setBarWidget`. That entry is the
 plugin's single entry: enablement, placement and every setting live on it.
