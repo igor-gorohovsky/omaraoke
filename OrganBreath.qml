@@ -27,25 +27,25 @@ Item {
 
   OrganGlow {
     tint: Qt.hsla(scene.hue, scene.saturation, scene.lightness, 1)
-    opacity: 0.08 + 0.26 * scene.lift
+    opacity: 0.10 + 0.32 * scene.lift
     width: scene.width * 2.4
     height: scene.height * (1.05 + 0.35 * scene.lift)
     x: (scene.width - width) / 2 - scene.sway * 0.6
     y: scene.height - height / 2
-    coreAlpha: 0.34
-    midAlpha: 0.13
+    coreAlpha: 0.50
+    midAlpha: 0.20
   }
 
   OrganGlow {
     // The beat only widens the reach; it never touches opacity, so a
     // percussive track cannot flash the screen.
     tint: Qt.hsla(scene.hue, scene.saturation, Math.min(0.78, scene.lightness + 0.1), 1)
-    opacity: 0.10 + 0.40 * scene.level
+    opacity: 0.12 + 0.50 * scene.level
     width: scene.width * (1.45 + 0.22 * scene.level)
     height: scene.height * (0.62 + 0.50 * scene.level + 0.07 * scene.pulse)
     x: (scene.width - width) / 2 + scene.sway
     y: scene.height - height / 2
-    coreAlpha: 0.55
-    midAlpha: 0.15
+    coreAlpha: 0.80
+    midAlpha: 0.24
   }
 }

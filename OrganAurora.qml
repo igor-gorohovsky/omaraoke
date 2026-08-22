@@ -39,13 +39,15 @@ Item {
 
       tint: Qt.hsla(curtainHue, scene.saturation,
                     Math.min(0.8, scene.lightness + index * 0.04), 1)
-      opacity: (0.07 + 0.30 * scene.glow) * depth
-      width: scene.width * 0.62
-      height: scene.height * (0.85 + 0.45 * scene.level)
-      x: scene.width * 0.5 - width / 2 + travel * scene.width * 0.38
-      y: scene.height - height * 0.55
-      coreAlpha: 0.46
-      midAlpha: 0.14
+      opacity: (0.11 + 0.40 * scene.glow) * depth
+      // Narrow enough to read as three separate curtains where they part, and
+      // wide enough to merge into one wash where they cross.
+      width: scene.width * 0.34
+      height: scene.height * (1.05 + 0.50 * scene.level)
+      x: scene.width * 0.5 - width / 2 + travel * scene.width * 0.42
+      y: scene.height - height * 0.52
+      coreAlpha: 0.78
+      midAlpha: 0.24
     }
   }
 
@@ -53,12 +55,12 @@ Item {
   // instead of hovering.
   OrganGlow {
     tint: Qt.hsla(scene.hue, scene.saturation, scene.lightness, 1)
-    opacity: 0.06 + 0.22 * scene.lift
+    opacity: 0.08 + 0.26 * scene.lift
     width: scene.width * 2.2
     height: scene.height * 0.40
     x: (scene.width - width) / 2
     y: scene.height - height / 2
-    coreAlpha: 0.34
-    midAlpha: 0.10
+    coreAlpha: 0.52
+    midAlpha: 0.15
   }
 }

@@ -14,9 +14,9 @@ RectangularGlow {
   property real amount: 0
   property real plateRadius: 0
 
-  glowRadius: 5 + 24 * amount
+  glowRadius: 5 + 20 * amount
   spread: 0.08
   cornerRadius: plateRadius + glowRadius
-  opacity: 0.40 * amount
+  opacity: 0.34 * amount
   visible: amount > 0.01
 }

@@ -26,13 +26,13 @@ Item {
   // on it. Bass only, so it breathes with the track and not with each bar.
   OrganGlow {
     tint: scene.barColor
-    opacity: 0.06 + 0.20 * (scene.organ ? scene.organ.bass : 0)
+    opacity: 0.08 + 0.28 * (scene.organ ? scene.organ.bass : 0)
     width: scene.width * 1.6
     height: scene.height * 0.55
     x: (scene.width - width) / 2
     y: scene.height - height / 2
-    coreAlpha: 0.36
-    midAlpha: 0.10
+    coreAlpha: 0.55
+    midAlpha: 0.16
   }
 
   Repeater {
@@ -61,7 +61,7 @@ Item {
         // quiet, instead of dissolving into disconnected stubs.
         height: scene.maxBar * (0.03 + 0.97 * parent.level)
         color: scene.barColor
-        opacity: 0.20 + 0.55 * parent.level
+        opacity: 0.25 + 0.60 * parent.level
       }
     }
   }
