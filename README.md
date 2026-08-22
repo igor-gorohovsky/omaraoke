@@ -49,6 +49,9 @@ key bound or a config file opened — the menu is the whole no-keybinding path.
 > **Coming from 0.1?** Omaraoke is a bar widget now, so it lives in the bar
 > layout rather than the plugin list. Re-enable it once to move it across:
 > `omarchy plugin disable igoroh.omaraoke && omarchy plugin enable igoroh.omaraoke`.
+> Disabling drops the old entry and enabling writes a fresh one, so any settings
+> you had set come back at their defaults — worth a glance at the table below
+> afterwards. A keybinding or Omarchy-menu row from 0.1 keeps working unchanged.
 
 ### ⌨️ Or bind a key
 
