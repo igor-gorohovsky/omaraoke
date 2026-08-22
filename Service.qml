@@ -35,7 +35,6 @@ Item {
   readonly property string monitorsMode: pluginConfig.monitors === "focused" ? "focused" : "all"
   readonly property string positionPreset: pluginConfig.position === "center" ? "center" : "lower"
   readonly property string motionPreset: pluginConfig.motion === "handoff" ? "handoff" : "drift"
-  readonly property int offsetMs: Number(pluginConfig.offsetMs) || 0
   readonly property bool colorOrganEnabled: pluginConfig.colorOrgan !== false
   readonly property bool autoCloseOnStop: pluginConfig.autoCloseOnStop !== false
   readonly property bool hideBar: pluginConfig.hideBar === true
@@ -125,7 +124,7 @@ Item {
   property real anchorAt: 0
 
   function nowPositionMs() {
-    var p = anchorMs + (playing ? Date.now() - anchorAt : 0) + offsetMs
+    var p = anchorMs + (playing ? Date.now() - anchorAt : 0)
     return p < 0 ? 0 : p
   }
 

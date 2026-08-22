@@ -71,7 +71,7 @@ channel name.
 **Sync Position**:
 The playback position the display trusts: MPRIS position pulled ~1 Hz,
 extrapolated with a monotonic clock, hard-resynced on Seeked/state
-change/drift > 250 ms, plus the user's `offsetMs` nudge.
+change/drift > 250 ms.
 
 **Static Mode**:
 The fallback display when no timestamps are usable (plain lyrics only, or the

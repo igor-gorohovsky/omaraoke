@@ -52,7 +52,7 @@ target too.
 Settings live inline on the plugin's entry in `~/.config/omarchy/shell.json`:
 
 ```json
-{ "id": "igoroh.omaraoke", "position": "center", "offsetMs": 0 }
+{ "id": "igoroh.omaraoke", "position": "center", "motion": "handoff" }
 ```
 
 | Key               | Default    | Meaning |
@@ -60,7 +60,6 @@ Settings live inline on the plugin's entry in `~/.config/omarchy/shell.json`:
 | `monitors`        | `"all"`    | Mirror the overlay on every screen, or `"focused"` only. |
 | `position`        | `"lower"`  | Lyrics placement: `"lower"` or `"center"`. |
 | `motion`          | `"drift"`  | How the lines move — see [Motion](#-pick-your-motion). |
-| `offsetMs`        | `0`        | Manual sync nudge (positive = lyrics later). |
 | `colorOrgan`      | `true`     | Master switch for the Color Organ (P2). |
 | `autoCloseOnStop` | `true`     | Close the session when playback stops (never on pause). |
 | `hideBar`         | `false`    | Hide the bar during a session; it returns on close. |
@@ -152,7 +151,6 @@ It needs only `hyprctl` and `jq`.
   carry, so it means local transcription and alignment.
 - **Sync improvements and fixes** — position is pulled from MPRIS at ~1 Hz and
   extrapolated between polls, which drifts on some players and after seeks.
-  `offsetMs` is the manual escape hatch in the meantime.
 
 ## Managing the plugin
 
