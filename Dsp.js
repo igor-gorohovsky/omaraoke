@@ -452,20 +452,3 @@ function createAnalyzer(options) {
 
   return self
 }
-
-// Deterministic scene pick: the same song always gets the same scene, on every
-// monitor and across restarts, without storing anything. FNV-1a over the
-// case-folded "artist|title", then a MurmurHash3 finaliser — FNV's low bits
-// barely avalanche, and a shuffle picks its scene with `hash % sceneCount`.
-function sceneHash(artist, title) {
-  var s = (String(artist || "") + "|" + String(title || "")).toLowerCase()
-  var h = 0x811c9dc5
-  for (var i = 0; i < s.length; i++)
-    h = Math.imul(h ^ s.charCodeAt(i), 16777619)
-  h ^= h >>> 16
-  h = Math.imul(h, 0x85ebca6b)
-  h ^= h >>> 13
-  h = Math.imul(h, 0xc2b2ae35)
-  h ^= h >>> 16
-  return h >>> 0
-}

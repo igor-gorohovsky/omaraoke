@@ -40,6 +40,10 @@ Panel {
     var value = settings ? settings.stayAwake : undefined
     return value === false ? "off" : "on"
   }
+  readonly property string colorOrganValue: {
+    var value = settings ? settings.colorOrgan : undefined
+    return value === false ? "off" : "on"
+  }
 
   readonly property var motionOptions: [
     { value: "drift", label: "Drift" },
@@ -53,11 +57,15 @@ Panel {
     { value: "on", label: "On" },
     { value: "off", label: "Off" }
   ]
+  readonly property var colorOrganOptions: [
+    { value: "on", label: "On" },
+    { value: "off", label: "Off" }
+  ]
 
   readonly property color fg: bar ? bar.foreground : Color.foreground
   readonly property string fontFam: bar ? bar.fontFamily : Style.font.family
 
-  // ---- Keyboard cursor: row 0 is the Session action, rows 1 to 3 are the
+  // ---- Keyboard cursor: row 0 is the Session action, rows 1 to 4 are the
   //      two-option settings. Mouse hover moves the same cursor, so only one
   //      highlight is ever on screen.
   property bool cursorActive: false
@@ -74,7 +82,7 @@ Panel {
       return
     }
     if (dy !== 0) {
-      cursorRow = Math.max(0, Math.min(3, cursorRow + dy))
+      cursorRow = Math.max(0, Math.min(4, cursorRow + dy))
       cursorCol = Math.min(cursorCol, columnsIn(cursorRow) - 1)
     } else if (dx !== 0) {
       cursorCol = Math.max(0, Math.min(columnsIn(cursorRow) - 1, cursorCol + dx))
@@ -90,8 +98,10 @@ Panel {
       writeSetting("motion", motionOptions[cursorCol].value)
     else if (cursorRow === 2)
       writeSetting("position", positionOptions[cursorCol].value)
-    else
+    else if (cursorRow === 3)
       writeSetting("stayAwake", stayAwakeOptions[cursorCol].value === "on")
+    else
+      writeSetting("colorOrgan", colorOrganOptions[cursorCol].value === "on")
   }
 
   function setCursor(row, col) {
@@ -216,9 +226,16 @@ Panel {
           onChosen: function(value) { root.writeSetting("stayAwake", value === "on") }
         }
 
-        // The Color Organ ("effects", config key `colorOrgan`) gets its own
-        // ChoiceRow here once it actually draws something. Give it row 4 and
-        // widen columnsIn() to match.
+        // ---------- Effects ----------
+        // Off: the reactive layer is never built and the capture pipeline
+        // never starts, leaving just the lyrics over the wallpaper.
+        ChoiceRow {
+          row: 4
+          title: "EFFECTS"
+          options: root.colorOrganOptions
+          current: root.colorOrganValue
+          onChosen: function(value) { root.writeSetting("colorOrgan", value === "on") }
+        }
       }
     }
   }
@@ -229,6 +246,9 @@ Panel {
     property int row: 0
     property string title: ""
     property var options: []
+    // Cells per line; options beyond it wrap. The keyboard cursor still walks
+    // the options as one flat row — left/right crosses the visual break.
+    property int columns: options.length
     property string current: ""
 
     signal chosen(string value)
@@ -242,13 +262,15 @@ Panel {
       fontFamily: root.fontFam
     }
 
-    Row {
+    Grid {
       id: optionRow
       width: parent.width
-      spacing: Style.space(6)
+      columns: Math.max(1, choice.columns)
+      columnSpacing: Style.space(6)
+      rowSpacing: Style.space(6)
 
-      readonly property real cellWidth: choice.options.length > 0
-        ? (width - spacing * (choice.options.length - 1)) / choice.options.length
+      readonly property real cellWidth: columns > 0
+        ? (width - columnSpacing * (columns - 1)) / columns
         : 0
 
       Repeater {

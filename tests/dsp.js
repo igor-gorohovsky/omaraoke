@@ -16,7 +16,7 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'Dsp.js'), 'utf8')
   .replace(/^\.pragma\s+library\s*$/m, '')
 const Dsp = {}
 new Function('exports', src + '\n;exports.createAnalyzer = createAnalyzer' +
-  ';exports.bandCentres = bandCentres;exports.sceneHash = sceneHash')(Dsp)
+  ';exports.bandCentres = bandCentres')(Dsp)
 
 // ---- harness ---------------------------------------------------------------
 
@@ -301,23 +301,6 @@ group('framing')
   e.advance(10)
   check('a stalled frame is clamped', Math.abs(e.mid - before) <= 0.25 * e.options.maxSlew + 1e-9,
     `${before.toFixed(3)} → ${e.mid.toFixed(3)}`)
-}
-
-// ---- scene hash ------------------------------------------------------------
-
-group('scene hash')
-{
-  const h = Dsp.sceneHash
-  check('stable across calls', h('Boards of Canada', 'Roygbiv') === h('Boards of Canada', 'Roygbiv'))
-  check('case-insensitive', h('BOARDS', 'ROYGBIV') === h('boards', 'roygbiv'))
-  check('separates artist from title', h('a|b', '') !== h('a', 'b'))
-  check('in range', h('x', 'y') >= 0 && h('x', 'y') <= 0xffffffff)
-
-  // A four-scene shuffle must not collapse onto one scene.
-  const buckets = [0, 0, 0, 0]
-  for (let i = 0; i < 4000; i++)
-    buckets[h('artist ' + i, 'title ' + i) % 4]++
-  check('spreads across four scenes', buckets.every(b => b > 800), buckets.join(','))
 }
 
 // ---- cost ------------------------------------------------------------------

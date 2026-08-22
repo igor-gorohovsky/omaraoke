@@ -43,8 +43,8 @@ Item {
   property real beatPulse: 0
 
   // Per-band levels, low to high. A stable Float64Array mutated in place: it
-  // emits no change signal, so a spectrum reads it from its own FrameAnimation
-  // rather than binding to it.
+  // emits no change signal, so a scene that wants the bank reads it from its
+  // own FrameAnimation rather than binding to it.
   readonly property var levels: analyzer.bands
   readonly property int bandCount: analyzer.options.bandCount
 

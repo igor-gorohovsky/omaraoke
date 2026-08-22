@@ -41,6 +41,8 @@ drops the icon into the right-hand section of the bar. Move it with
 | **Start Karaoke** / **Stop Karaoke** | Opens or closes the session, exactly as the keybinding does. |
 | **Motion** | `Drift` or `Hand-off` — see [Motion](#-pick-your-motion). |
 | **Position** | Lyrics `Lower` or `Center`. |
+| **Stay Awake** | Hold off the screensaver and lock for the session. |
+| **Effects** | The color organ `On` or `Off` — see [Color organ](#-the-color-organ). |
 
 Arrow keys (or `hjkl`) move, `Enter` picks, `Esc` closes. Nothing here needs a
 key bound or a config file opened — the menu is the whole no-keybinding path.
@@ -97,16 +99,15 @@ Set one without opening the file:
 omarchy bar set igoroh.omaraoke position center
 ```
 
-`position`, `motion` and `stayAwake` are in the topbar menu too; the rest are
-set here.
+`position`, `motion`, `stayAwake` and `colorOrgan` are in the topbar menu too;
+the rest are set here.
 
 | Key               | Default    | Meaning |
 |-------------------|------------|---------|
 | `monitors`        | `"all"`    | Mirror the overlay on every screen, or `"focused"` only. |
 | `position`        | `"lower"`  | Lyrics placement: `"lower"` or `"center"`. |
 | `motion`          | `"drift"`  | How the lines move — see [Motion](#-pick-your-motion). |
-| `colorOrgan`      | `true`     | Master switch for the color organ. |
-| `organStyle`      | `"shuffle"`| Which visual — see [Color organ](#-the-color-organ). |
+| `colorOrgan`      | `true`     | The color organ — see [Color organ](#-the-color-organ). |
 | `stayAwake`       | `true`     | Turn on Omarchy's Stay Awake for the session (no screensaver, no lock); restored on close unless you had it on already. |
 | `autoCloseOnStop` | `true`     | Close the session when playback stops (never on pause). |
 | `hideBar`         | `false`    | Hide the bar during a session; it returns on close. |
@@ -129,27 +130,21 @@ the next line starts. Steadier to read; less alive.
 
 Behind the lyrics, the wallpaper reacts to whatever is coming out of your
 speakers. Every color is your theme's accent, a few degrees either side of it —
-never a rainbow, and it follows a theme switch while you're singing.
+never a rainbow, and it follows a theme switch while you're singing. On a light
+theme the sparks go dark rather than bright, so they stand out from the page
+instead of dissolving into it.
 
-There are four looks, and by default you get a different one per song:
-
-| `organStyle` | |
-|---|---|
-| `"shuffle"` *(default)* | Picks one per track. The same song always gets the same one, so your favourites keep their look. |
-| `"breath"` | A big soft glow rising off the bottom edge, swelling with the bass. |
-| `"spectrum"` | Thin mirrored bars along the bottom, bass in the middle. |
-| `"embers"` | Sparks drifting up, thrown by the cymbals and the beat. |
-| `"aurora"` | Three slow curtains crossing each other. |
-
-Whichever is running, the line you're singing gets a gentle glow and a ~2%
-swell that breathes with the vocals and cymbals.
+Sparks drift up off the bottom edge — how many depends on the cymbals, and
+every beat throws a handful extra. It is carried by count and motion rather
+than by brightness, so a loud track means more embers, never a brighter screen.
 
 Nothing flashes. Every channel that can change brightness is rate-limited
 before any visual sees it, so a full swing takes at least a sixth of a second
 no matter how hard the track hits — well under the threshold that matters for
 photosensitivity. Lyric text never changes color at all.
 
-Set `"colorOrgan": false` if you'd rather have just the lyrics.
+Turn it off in the topbar menu, or set `"colorOrgan": false`, if you'd
+rather have just the lyrics.
 
 ## 💡 Good to know
 
@@ -187,9 +182,10 @@ duration of the current track, sent to LRCLIB to find its lyrics.
 ## 🔒 What it touches
 
 Omaraoke writes exactly one thing to your configuration: the settings you
-change from its topbar menu, `motion` and `position`, saved inline on its own
-bar-layout entry in `~/.config/omarchy/shell.json`. It goes through the same
-shell API `omarchy bar set` uses and touches nothing else in that file. The
+change from its topbar menu — `motion`, `position`, `stayAwake` and
+`colorOrgan` — saved inline on its own bar-layout entry in
+`~/.config/omarchy/shell.json`. It goes through the same shell API
+`omarchy bar set` uses and touches nothing else in that file. The
 keybinding and the Omarchy menu row above are yours to add and yours to
 remove, and every other setting is *read* from your entry and never written
 back. At runtime it creates only its own files:

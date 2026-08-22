@@ -20,18 +20,6 @@ Item {
     ? trackArtist + " — " + trackTitle
     : (trackTitle !== "" ? trackTitle : trackArtist)
 
-  // ---- Scrim pulse --------------------------------------------------------
-  // The Color Organ's one reach into the lyrics: the current line's plate
-  // swells ~2% and picks up a glow with the mid/high envelope. Absent — and
-  // costing nothing — whenever the organ is off or its capture unavailable.
-  // Text colour is never modulated by audio, and neither is the Scrim's own
-  // black/white choice; only geometry and glow move.
-
-  readonly property var organ: service ? service.organ : null
-  readonly property bool organLive: organ !== null && organ.available
-  readonly property real scrimPulse: organLive ? Math.max(organ.mid, organ.high) : 0
-  readonly property color pulseColor: Color.accent
-
   // ---- Scrim: shade opposed to the theme foreground, never by audio -------
   // Contrast with the text is guaranteed by construction; the Scrim's own
   // opacity separates it from any wallpaper behind it.
@@ -118,15 +106,6 @@ Item {
     width: content.width + Style.space(48)
     height: content.height + Style.space(32)
     anchors.centerIn: parent
-    scale: 1 + 0.012 * view.scrimPulse
-    // Negative z draws beneath the Rectangle's own fill.
-    ScrimPulse {
-      anchors.fill: parent
-      z: -1
-      color: view.pulseColor
-      plateRadius: parent.radius
-      amount: view.scrimPulse
-    }
     Column {
       id: content
       anchors.centerIn: parent
@@ -379,16 +358,7 @@ Item {
             width: plate.width
             height: plate.height
             transformOrigin: Item.Center
-            // Prominence-weighted, so only the line being sung pulses.
-            scale: (stack.farScale + (1 - stack.farScale) * slot.prominence)
-              * (1 + 0.018 * view.scrimPulse * slot.prominence)
-
-            ScrimPulse {
-              anchors.fill: plate
-              color: view.pulseColor
-              plateRadius: plate.radius
-              amount: view.scrimPulse * slot.prominence
-            }
+            scale: stack.farScale + (1 - stack.farScale) * slot.prominence
 
             Rectangle {
               id: plate

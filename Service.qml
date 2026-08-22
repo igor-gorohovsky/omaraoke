@@ -49,11 +49,6 @@ Item {
   readonly property string motionPreset: pluginConfig.motion === "handoff" ? "handoff" : "drift"
   readonly property bool colorOrganEnabled: pluginConfig.colorOrgan !== false
   readonly property bool stayAwake: pluginConfig.stayAwake !== false
-  // Scene name, or "shuffle" to pick one per track. Validated in OrganView,
-  // which owns the list of scenes that exist.
-  readonly property string organStyle:
-    typeof pluginConfig.organStyle === "string" && pluginConfig.organStyle !== ""
-      ? pluginConfig.organStyle : "shuffle"
   readonly property bool autoCloseOnStop: pluginConfig.autoCloseOnStop !== false
   readonly property bool hideBar: pluginConfig.hideBar === true
   readonly property bool pauseOnClose: pluginConfig.pauseOnClose !== false

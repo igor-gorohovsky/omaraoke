@@ -1,11 +1,10 @@
 import QtQuick
 import qs.Commons
-import "Dsp.js" as Dsp
 
-// The Color Organ's visual layer: one Scene per monitor, drawn under the
-// karaoke content and over the wallpaper. With the organ switched off or the
-// capture unavailable the Loader has no source at all — nothing is built,
-// nothing is drawn, and the lyrics above are untouched.
+// The Color Organ's visual layer: the Embers Scene, one per monitor, drawn
+// under the karaoke content and over the wallpaper. With the organ switched
+// off or the capture unavailable the Loader has no source at all — nothing is
+// built, nothing is drawn, and the lyrics above are untouched.
 Item {
   id: view
 
@@ -15,46 +14,6 @@ Item {
   readonly property var organ: service ? service.organ : null
   readonly property bool live: active && organ !== null && organ.available
 
-  // ---- Scene selection ------------------------------------------------------
-
-  // The Scenes that exist. `organStyle` names one; "shuffle" — the default,
-  // and the fallback for anything unrecognised — picks per track from a hash
-  // of artist|title, so a song always gets the same Scene, on every monitor
-  // and across restarts, with nothing stored.
-  readonly property var sceneNames: ["breath", "spectrum", "embers", "aurora"]
-  readonly property string styleKey: service ? service.organStyle : "shuffle"
-  readonly property string sceneName: {
-    if (sceneNames.indexOf(styleKey) >= 0)
-      return styleKey
-    var key = Dsp.sceneHash(service ? service.trackArtist : "",
-                            service ? service.trackTitle : "")
-    return sceneNames[key % sceneNames.length]
-  }
-
-  // A swap happens on a track change, behind the Title Card. Fade rather than
-  // cut: a full-screen glow vanishing between two frames reads as a fault.
-  property string shownScene: ""
-  property bool swapping: false
-
-  Component.onCompleted: shownScene = sceneName
-  onSceneNameChanged: {
-    if (!live || shownScene === "") {
-      shownScene = sceneName
-      return
-    }
-    swapping = true
-    swapTimer.restart()
-  }
-
-  Timer {
-    id: swapTimer
-    interval: 420
-    onTriggered: {
-      view.shownScene = view.sceneName
-      view.swapping = false
-    }
-  }
-
   // ---- Colour ---------------------------------------------------------------
   // Every hue in every Scene is the theme accent plus a few degrees. That is
   // what makes the organ read as part of the theme instead of as a rainbow,
@@ -63,11 +22,30 @@ Item {
 
   readonly property color accent: Color.accent
   // A fully desaturated accent has no hue to drift; it stays a neutral wash
-  // rather than being given a colour the theme does not have.
+  // rather than being given a colour the theme does not have. Which leaves
+  // lightness to carry the whole Scene on those themes — so it is the one that
+  // has to be right.
   readonly property real accentHue: accent.hslHue >= 0 ? accent.hslHue : 0
   readonly property real saturation: Math.min(0.85, accent.hslSaturation)
-  // Lightness is floored, not taken: a very dark accent must still glow.
-  readonly property real lightness: Math.max(0.55, Math.min(0.75, accent.hslLightness))
+
+  // Which way is "away from the background". The Scrim decides its black/white
+  // by the theme foreground's luminance (light text ⇒ the ground behind it is
+  // dark), and the organ reads the same signal so the two never disagree about
+  // which way the wallpaper leans.
+  readonly property color foreground: Color.foreground
+  readonly property real fgLuminance:
+    0.2126 * foreground.r + 0.7152 * foreground.g + 0.0722 * foreground.b
+  readonly property bool darkGround: fgLuminance >= 0.5
+
+  // Lightness is clamped away from the ground, not merely floored. On a dark
+  // theme that is a floor — a very dark accent must still glow. On a light one
+  // the same floor was the bug: seven of the shipped themes have a near-white
+  // background, and a mid-lightness mote on it is a smudge. There the window
+  // moves below the ground instead, and the accent's hue and saturation are
+  // untouched either way.
+  readonly property real lightness: darkGround
+    ? Math.max(0.55, Math.min(0.75, accent.hslLightness))
+    : Math.max(0.24, Math.min(0.42, accent.hslLightness))
 
   // Slow hue drift, ±12° over 90 s. Stepped at 8 Hz rather than per frame
   // because a hue change re-renders each glow's gradient texture, while
@@ -100,50 +78,24 @@ Item {
 
   Item {
     anchors.fill: parent
-    opacity: view.live && !view.swapping ? 1 : 0
+    opacity: view.live ? 1 : 0
     visible: opacity > 0
     Behavior on opacity { NumberAnimation { duration: 420 } }
 
     Loader {
+      id: sceneLoader
       anchors.fill: parent
-      active: view.live && view.shownScene !== ""
-      sourceComponent: {
-        switch (view.shownScene) {
-        case "spectrum": return spectrumScene
-        case "embers": return embersScene
-        case "aurora": return auroraScene
-        default: return breathScene
-        }
-      }
+      active: view.live
+      source: "OrganEmbers.qml"
     }
-  }
 
-  Component {
-    id: breathScene
-    OrganBreath {
-      organ: view.organ; hue: view.hue; saturation: view.saturation
-      lightness: view.lightness; phase: view.phase
-    }
-  }
-  Component {
-    id: spectrumScene
-    OrganSpectrum {
-      organ: view.organ; hue: view.hue; saturation: view.saturation
-      lightness: view.lightness; phase: view.phase
-    }
-  }
-  Component {
-    id: embersScene
-    OrganEmbers {
-      organ: view.organ; hue: view.hue; saturation: view.saturation
-      lightness: view.lightness; phase: view.phase
-    }
-  }
-  Component {
-    id: auroraScene
-    OrganAurora {
-      organ: view.organ; hue: view.hue; saturation: view.saturation
-      lightness: view.lightness; phase: view.phase
-    }
+    // The Scene interface. Binding tolerates a null target, so an empty
+    // Loader costs nothing.
+    Binding { target: sceneLoader.item; property: "organ"; value: view.organ }
+    Binding { target: sceneLoader.item; property: "hue"; value: view.hue }
+    Binding { target: sceneLoader.item; property: "saturation"; value: view.saturation }
+    Binding { target: sceneLoader.item; property: "lightness"; value: view.lightness }
+    Binding { target: sceneLoader.item; property: "darkGround"; value: view.darkGround }
+    Binding { target: sceneLoader.item; property: "phase"; value: view.phase }
   }
 }
