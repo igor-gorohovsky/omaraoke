@@ -16,13 +16,15 @@
   },
   "barWidget": {
     "displayName": "Omaraoke",
-    "description": "Start and stop karaoke from the bar, and pick how the lyrics move and where they sit",
+    "description": "Start and stop karaoke from the bar, and pick how the lyrics move, where they sit, and whether the color organ runs",
     "category": "Media",
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
       "motion": "drift",
-      "position": "lower"
+      "position": "lower",
+      "stayAwake": true,
+      "colorOrgan": true
     },
     "schema": [
       {
@@ -40,6 +42,20 @@
         "description": "Where the lyrics sit on screen.",
         "options": ["lower", "center"],
         "defaultValue": "lower"
+      },
+      {
+        "key": "stayAwake",
+        "type": "bool",
+        "label": "Stay Awake",
+        "description": "Hold off the screensaver and the lock screen for as long as the session is open. Restored on close unless you had Stay Awake on already.",
+        "defaultValue": true
+      },
+      {
+        "key": "colorOrgan",
+        "type": "bool",
+        "label": "Effects",
+        "description": "The color organ: sparks on the wallpaper that follow the music, in your theme's accent. Off leaves just the lyrics.",
+        "defaultValue": true
       }
     ]
   }
